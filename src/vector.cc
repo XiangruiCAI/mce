@@ -100,4 +100,12 @@ std::ostream& operator<<(std::ostream& os, const Vector& v)
   return os;
 }
 
+real Vector::dot(const Vector& x) {
+  real ans = 0.0;
+  for (int64_t i = 0; i < m_; i++) {
+    ans += data_[i] * x[i];
+  }
+  return ans;
+}
+
 }

@@ -97,6 +97,8 @@ class Model {
     real getLoss() const;
     real sigmoid(real) const;
     real log(real) const;
+    real mvnPdf(vector v) const;
+    real betaPdf(real th, int32_t beta_a, int32_t beta_b) const;
 
     std::minstd_rand rng;
 };

@@ -202,10 +202,12 @@ void Dictionary::threshold(int64_t t, int64_t tl) {
       if (e1.type != e2.type) return e1.type < e2.type;
       return e1.count > e2.count;
     });
+  // erase the words whose occurrences are lower than threshold (t, tl)
   words_.erase(remove_if(words_.begin(), words_.end(), [&](const entry& e) {
         return (e.type == entry_type::word && e.count < t) ||
                (e.type == entry_type::label && e.count < tl);
       }), words_.end());
+  // resize vector of words
   words_.shrink_to_fit();
   size_ = 0;
   nwords_ = 0;

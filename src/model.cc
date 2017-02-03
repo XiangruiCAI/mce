@@ -13,6 +13,13 @@
 
 #include <algorithm>
 
+#include <cmath>
+
+#include "utils.h"
+
+#include <boost/math/special_functions/beta.hpp>
+
+>>>>>>> med2vec-001 implement two distributions
 namespace fasttext {
 
 Model::Model(std::shared_ptr<Matrix> wi,
@@ -315,4 +322,13 @@ real Model::sigmoid(real x) const {
   }
 }
 
+// this method only support N(0, Sigma) distribution
+real mvnPdf(vector v) const {
+  return std::exp(-0.5 * v.dot(v)) / std::sqrt(pow(2 * M_PI, v.size()))
+}
+
+real betaPdf(real th, real beta_a, real beta_b) const {
+  boost::math::beta_distribution<float> b(beta_a, beta_b);
+  return boost::math::pdf(b, th);
+}
 }

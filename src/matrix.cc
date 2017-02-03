@@ -47,13 +47,11 @@ Matrix& Matrix::operator=(const Matrix& other) {
   return *this;
 }
 
-Matrix::~Matrix() {
-  delete[] data_;
-}
+Matrix::~Matrix() { delete[] data_; }
 
 void Matrix::zero() {
   for (int64_t i = 0; i < (m_ * n_); i++) {
-      data_[i] = 0.0;
+    data_[i] = 0.0;
   }
 }
 
@@ -62,6 +60,33 @@ void Matrix::uniform(real a) {
   std::uniform_real_distribution<> uniform(-a, a);
   for (int64_t i = 0; i < (m_ * n_); i++) {
     data_[i] = uniform(rng);
+  }
+}
+
+void Matrix::mulVarNormal() {
+  // n_: dimension
+  // m_: num_features
+  Eigen::VectorXf mean(n_);
+  Eigen::MatrixXf covar(n_, n_);
+  mean.setZero();
+  covar.setIdentity();
+  Eigen::EigenMultivariateNormal<float> normX_solver(mean, covar);
+  Eigen::MatrixXf init = normX_solver.samples(m_).transpose();
+  for (int32_t i = 0; i < init.size(); i++) {
+    data_[(i % m_) * m_ + (i / m_)] = *(init.data() + i);
+  }
+}
+
+void Matrix::beta(std::vector<int64_t> a, std::vector<int64_t> b) {
+  assert(a.size() == b.size());
+  assert(a.size() == n_);
+  for (int32_t j = 0; j < n_; j++) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    sftrabbit::beta_distribution<> beta(a[j], b[j]);
+    for (int32_t i = 0; i < m_; i++) {
+      data_[i * m_+ j] = beta(gen);
+    }
   }
 }
 
@@ -86,17 +111,16 @@ real Matrix::dotRow(const Vector& vec, int64_t i) {
 }
 
 void Matrix::save(std::ostream& out) {
-  out.write((char*) &m_, sizeof(int64_t));
-  out.write((char*) &n_, sizeof(int64_t));
-  out.write((char*) data_, m_ * n_ * sizeof(real));
+  out.write((char*)&m_, sizeof(int64_t));
+  out.write((char*)&n_, sizeof(int64_t));
+  out.write((char*)data_, m_ * n_ * sizeof(real));
 }
 
 void Matrix::load(std::istream& in) {
-  in.read((char*) &m_, sizeof(int64_t));
-  in.read((char*) &n_, sizeof(int64_t));
+  in.read((char*)&m_, sizeof(int64_t));
+  in.read((char*)&n_, sizeof(int64_t));
   delete[] data_;
   data_ = new real[m_ * n_];
-  in.read((char*) data_, m_ * n_ * sizeof(real));
+  in.read((char*)data_, m_ * n_ * sizeof(real));
 }
-
 }

@@ -1,3 +1,8 @@
+# Modification
+For use multivariate gaussian distribution and beta distribution, this repo depends on boost and eigen.
+You can install it on ubuntu by:
+`sudo apt-get install libboost-all-dev libeigen3-dev`
+
 # fastText
 
 fastText is a library for efficient learning of word representations and sentence classification.
