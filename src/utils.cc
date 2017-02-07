@@ -10,6 +10,7 @@
 #include "utils.h"
 
 #include <ios>
+#include <iostream>
 
 namespace fasttext {
 
@@ -23,6 +24,19 @@ namespace utils {
   void seek(std::ifstream& ifs, int64_t pos) {
     ifs.clear();
     ifs.seekg(std::streampos(pos));
+  }
+  
+  void seekToBOS(std::ifstream& ifs, int64_t pos) {
+    ifs.clear();
+    std::streambuf& sb = *ifs.rdbuf();
+    int32_t off = 0;
+    for (off = 0; ifs.seekg(std::streampos(pos - off)); off++) {
+      char c = sb.sbumpc();
+      if (c == '\n')
+        break;
+    }
+    std::cout << "seek position: " << pos - off + 1 << std::endl;
+    ifs.seekg(std::streampos(pos - off + 1));
   }
 }
 

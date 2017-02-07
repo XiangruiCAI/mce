@@ -16,6 +16,7 @@
 #include <ostream>
 #include <random>
 #include <memory>
+#include <stack>  
 
 #include "args.h"
 #include "real.h"
@@ -24,12 +25,18 @@ namespace fasttext {
 
 typedef int32_t id_type;
 enum class entry_type : int8_t {word=0, label=1};
+enum class flag_time : int8_t {time=0, word=1};
 
 struct entry {
   std::string word;
   int64_t count;
   entry_type type;
   std::vector<int32_t> subwords;
+};
+
+struct word_time{
+    int64_t time;    // 计算所得第几个time_unit(e.g., 第2周， time = 2)
+    std::vector<int32_t> wordsID; //
 };
 
 class Dictionary {
@@ -41,6 +48,7 @@ class Dictionary {
     void initTableDiscard();
     void initNgrams();
 
+    std::shared_ptr<std::stack<char>> brackets_;//count how many square brackets
     std::shared_ptr<Args> args_;
     std::vector<int32_t> word2int_;
     std::vector<entry> words_;
@@ -69,6 +77,8 @@ class Dictionary {
     uint32_t hash(const std::string& str) const;
     void add(const std::string&);
     bool readWord(std::istream&, std::string&) const;
+    bool readWordTime(std::istream&, std::string&, flag_time&) const;
+    void clearStack(std::shared_ptr<std::stack<char>>) const;
     void readFromFile(std::istream&);
     std::string getLabel(int32_t) const;
     void save(std::ostream&) const;
@@ -76,6 +86,9 @@ class Dictionary {
     std::vector<int64_t> getCounts(entry_type) const;
     void addNgrams(std::vector<int32_t>&, int32_t) const;
     int32_t getLine(std::istream&, std::vector<int32_t>&,
+                    std::vector<int32_t>&, std::minstd_rand&) const;
+    int64_t timeConvert(std::string, std::string) const;
+    int32_t getLineContext(std::istream&, std::vector<word_time>&,
                     std::vector<int32_t>&, std::minstd_rand&) const;
     void threshold(int64_t, int64_t);
 };

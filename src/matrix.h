@@ -32,13 +32,15 @@ class Matrix {
   Matrix(int64_t, int64_t);
   Matrix(const Matrix&);
   Matrix& operator=(const Matrix&);
+  real getCell(int64_t, int64_t);
+  void updateCell(int64_t, int64_t, real);
   ~Matrix();
 
   void zero();
   void uniform(real);
   // only support (0, E) parameters
   void mulVarNormal();
-  void beta(std::vector<int64_t> a, std::vector<int64_t> b);
+  void beta(std::vector<real> a, std::vector<real> b);
   real dotRow(const Vector&, int64_t);
   void addRow(const Vector&, int64_t, real);
 

@@ -100,12 +100,19 @@ std::ostream& operator<<(std::ostream& os, const Vector& v)
   return os;
 }
 
-real Vector::dot(const Vector& x) {
+real Vector::dot(const Vector& x) const {
   real ans = 0.0;
   for (int64_t i = 0; i < m_; i++) {
     ans += data_[i] * x[i];
   }
   return ans;
+}
+
+void Vector::add(const Vector& vec, real a) {
+  assert(vec.m_ == m_);
+  for (int64_t i = 0; i < m_; i++) {
+    data_[i] += a * vec[i];
+  }
 }
 
 }

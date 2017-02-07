@@ -27,6 +27,7 @@ Args::Args() {
   wordNgrams = 1;
   loss = loss_name::ns;
   model = model_name::sg;
+  timeUnit = time_unit::week;
   bucket = 2000000;
   minn = 3;
   maxn = 6;
@@ -36,6 +37,8 @@ Args::Args() {
   label = "__label__";
   verbose = 2;
   pretrainedVectors = "";
+  beta_base = 10;
+  delta = 0.2;
 }
 
 void Args::parseArgs(int argc, char** argv) {
@@ -113,6 +116,21 @@ void Args::parseArgs(int argc, char** argv) {
       verbose = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-pretrainedVectors") == 0) {
       pretrainedVectors = std::string(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-beta_base") == 0) {
+      beta_base = atof(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-delta") == 0) {
+      delta = atof(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-timeUnit") == 0) {
+      std::string tmunit(argv[ai + 1]);
+      if (tmunit == "day") {
+        timeUnit = time_unit::day;
+      } else if (tmunit == "week") {
+        timeUnit = time_unit::week;
+      } else if (tmunit == "month") {
+        timeUnit = time_unit::month;
+      } else if (tmunit == "year") {
+        timeUnit = time_unit::year;
+      }
     } else {
       std::cout << "Unknown argument: " << argv[ai] << std::endl;
       printHelp();
@@ -156,6 +174,9 @@ void Args::printHelp() {
     << "  -thread             number of threads [" << thread << "]\n"
     << "  -t                  sampling threshold [" << t << "]\n"
     << "  -label              labels prefix [" << label << "]\n"
+    << "  -beta_base          base beta parameters for initializing theta matrix [" << beta_base << "]\n"
+    << "  -delta              small probability for random context [" << delta << "]\n"
+    << "  -timeUnit           unit of time scope [" << int(timeUnit) << "]\n"
     << "  -verbose            verbosity level [" << verbose << "]\n"
     << "  -pretrainedVectors  pretrained word vectors for supervised learning []"
     << std::endl;
@@ -175,6 +196,9 @@ void Args::save(std::ostream& out) {
   out.write((char*) &(maxn), sizeof(int));
   out.write((char*) &(lrUpdateRate), sizeof(int));
   out.write((char*) &(t), sizeof(double));
+  out.write((char*) &(beta_base), sizeof(double));
+  out.write((char*) &(delta), sizeof(double));
+  out.write((char*) &(timeUnit), sizeof(time_unit));
 }
 
 void Args::load(std::istream& in) {
@@ -191,6 +215,9 @@ void Args::load(std::istream& in) {
   in.read((char*) &(maxn), sizeof(int));
   in.read((char*) &(lrUpdateRate), sizeof(int));
   in.read((char*) &(t), sizeof(double));
+  in.read((char*) &(beta_base), sizeof(double));
+  in.read((char*) &(delta), sizeof(double));
+  in.read((char*) &(timeUnit), sizeof(time_unit));
 }
 
 }

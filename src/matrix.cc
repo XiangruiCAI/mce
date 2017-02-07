@@ -73,11 +73,11 @@ void Matrix::mulVarNormal() {
   Eigen::EigenMultivariateNormal<float> normX_solver(mean, covar);
   Eigen::MatrixXf init = normX_solver.samples(m_).transpose();
   for (int32_t i = 0; i < init.size(); i++) {
-    data_[(i % m_) * m_ + (i / m_)] = *(init.data() + i);
+    data_[(i % m_) * n_ + (i / m_)] = *(init.data() + i);
   }
 }
 
-void Matrix::beta(std::vector<int64_t> a, std::vector<int64_t> b) {
+void Matrix::beta(std::vector<real> a, std::vector<real> b) {
   assert(a.size() == b.size());
   assert(a.size() == n_);
   for (int32_t j = 0; j < n_; j++) {
@@ -85,7 +85,7 @@ void Matrix::beta(std::vector<int64_t> a, std::vector<int64_t> b) {
     std::mt19937 gen(rd());
     sftrabbit::beta_distribution<> beta(a[j], b[j]);
     for (int32_t i = 0; i < m_; i++) {
-      data_[i * m_+ j] = beta(gen);
+      data_[i * n_+ j] = beta(gen);
     }
   }
 }
@@ -123,4 +123,13 @@ void Matrix::load(std::istream& in) {
   data_ = new real[m_ * n_];
   in.read((char*)data_, m_ * n_ * sizeof(real));
 }
+
+real Matrix::getCell(int64_t i, int64_t j) {
+  return data_[i * m_ + j];
+}
+
+void Matrix::updateCell(int64_t i, int64_t j, real value) {
+  data_[i * m_ + j] = value;
+}
+
 }

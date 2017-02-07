@@ -8,7 +8,7 @@
 #
 
 CXX = c++
-CXXFLAGS = -pthread -std=c++11 -I/usr/include/eigen3 -I/usr/include/boost
+CXXFLAGS = -g -pthread -std=c++11 -I/usr/include/eigen3 -I/usr/include/boost
 OBJS = args.o dictionary.o matrix.o vector.o model.o utils.o fasttext.o
 INCLUDES = -I.
 
@@ -44,3 +44,6 @@ fasttext: $(OBJS) src/fasttext.cc
 
 clean:
 	rm -rf *.o fasttext
+
+run:
+	./train.sh

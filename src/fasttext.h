@@ -31,9 +31,11 @@ class FastText {
     std::shared_ptr<Dictionary> dict_;
     std::shared_ptr<Matrix> input_;
     std::shared_ptr<Matrix> output_;
+    std::shared_ptr<Matrix> th_;
     std::shared_ptr<Model> model_;
     std::atomic<int64_t> tokenCount;
     clock_t start;
+    std::vector<int32_t> nctxt_;
 
   public:
     void getVector(Vector&, const std::string&);
@@ -47,6 +49,8 @@ class FastText {
                     const std::vector<int32_t>&);
     void cbow(Model&, real, const std::vector<int32_t>&);
     void skipgram(Model&, real, const std::vector<int32_t>&);
+    void sgContext(Model&, real, const std::vector<word_time>&);
+    int32_t countContext(const std::vector<word_time>&, int32_t);
     void test(std::istream&, int32_t);
     void predict(std::istream&, int32_t, bool);
     void predict(std::istream&, int32_t, std::vector<std::pair<real,std::string>>&) const;

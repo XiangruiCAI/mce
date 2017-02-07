@@ -17,19 +17,20 @@
 
 #include "utils.h"
 
-#include <boost/math/special_functions/beta.hpp>
+#include <boost/math/distributions/beta.hpp>
 
->>>>>>> med2vec-001 implement two distributions
 namespace fasttext {
 
 Model::Model(std::shared_ptr<Matrix> wi,
              std::shared_ptr<Matrix> wo,
+             std::shared_ptr<Matrix> th,
              std::shared_ptr<Args> args,
              int32_t seed)
   : hidden_(args->dim), output_(wo->m_), grad_(args->dim), rng(seed)
 {
   wi_ = wi;
   wo_ = wo;
+  th_ = th;
   args_ = args;
   isz_ = wi->m_;
   osz_ = wo->m_;
@@ -56,6 +57,50 @@ real Model::binaryLogistic(int32_t target, bool label, real lr) {
   } else {
     return -log(1.0 - score);
   }
+}
+
+real Model::genProb(int32_t target, real theta) {
+  return theta * sigmoid(wo_->dotRow(hidden_, target)) + (1.0 - theta) * args_->delta;
+}
+
+// add stochastic optimization
+// modify later
+real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t ntotal, int32_t nc, int32_t input) {
+  real score = sigmoid(wo_->dotRow(hidden_, target));
+  real theta = th_->getCell(input, dst);
+  real gp = genProb(target, theta);
+  real rGaussian = -log(mvnPdf(hidden_)) / (ntotal * (args_->neg + 1));
+  real a = std::abs(dst-args_->ws)+args_->beta_base;
+  real b = args_->beta_base;
+  real rBeta = -log(betaPdf(theta, a, b)) / (nc * (args_->neg));
+  if (label) {
+    real alpha = lr * ((1.0 - score) * score / gp);
+    grad_.addRow(*wo_, target, alpha);
+    grad_.add(hidden_, -1.0 / (ntotal * (args_->neg + 1)));
+    wo_->addRow(hidden_, target, theta * alpha);
+    real grad_th = ((a-1)/theta + (b-1)/(1-theta))/nc + (score-args_->delta)/gp;
+    th_->updateCell(input, dst, theta - lr * grad_th);
+    return -log(gp) + rGaussian + rBeta;
+  } else {
+    real alpha = lr * (0.0 - score);
+    grad_.addRow(*wo_, target, alpha);
+    grad_.add(hidden_, -1.0 / (ntotal * (args_->neg + 1)));
+    wo_->addRow(hidden_, target, alpha);
+    return -log(1.0 - score) + rGaussian + rBeta;
+  }
+}
+
+real Model::nsContext(int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t nc, int32_t input) {
+  real loss = 0.0;
+  grad_.zero();
+  for (int32_t n = 0; n <= args_->neg; n++) {
+    if (n == 0) {
+      loss += blContext(target, true, lr, dst, ntotal, nc, input);
+    } else {
+      loss += blContext(getNegative(target), false, lr, dst, ntotal, nc, input);
+    }
+  }
+  return loss;
 }
 
 real Model::negativeSampling(int32_t target, real lr) {
@@ -184,6 +229,25 @@ void Model::dfs(int32_t k, int32_t node, real score,
   dfs(k, tree[node].right, score + log(f), heap, hidden);
 }
 
+// dst: the distance between context feature and current feature
+// ntotal: the total number of context features
+// nc: number of features at dst from current feature
+void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t nc) {
+  assert(target >= 0);
+  assert(target < osz_);
+  assert(args_->loss == loss_name::ns);
+  if (input.size() == 0) return;
+  computeHidden(input, hidden_);
+  loss_ += nsContext(target, lr, dst, ntotal, nc, input[0]);
+  nexamples_ += 1;
+
+  if (args_->model == model_name::sup) {
+    grad_.mul(1.0 / input.size());
+  }
+  for (auto it = input.cbegin(); it != input.cend(); ++it) {
+    wi_->addRow(grad_, *it, 1.0);
+  }
+}
 void Model::update(const std::vector<int32_t>& input, int32_t target, real lr) {
   assert(target >= 0);
   assert(target < osz_);
@@ -323,11 +387,11 @@ real Model::sigmoid(real x) const {
 }
 
 // this method only support N(0, Sigma) distribution
-real mvnPdf(vector v) const {
-  return std::exp(-0.5 * v.dot(v)) / std::sqrt(pow(2 * M_PI, v.size()))
+real Model::mvnPdf(const Vector& v) const {
+  return std::exp(-0.5 * v.dot(v)) / std::sqrt(pow(2 * M_PI, v.size()));
 }
 
-real betaPdf(real th, real beta_a, real beta_b) const {
+real Model::betaPdf(real th, real beta_a, real beta_b) const {
   boost::math::beta_distribution<float> b(beta_a, beta_b);
   return boost::math::pdf(b, th);
 }

@@ -57,6 +57,7 @@ void FastText::saveModel() {
   dict_->save(ofs);
   input_->save(ofs);
   output_->save(ofs);
+  th_->save(ofs);
   ofs.close();
 }
 
@@ -79,7 +80,8 @@ void FastText::loadModel(std::istream& in) {
   dict_->load(in);
   input_->load(in);
   output_->load(in);
-  model_ = std::make_shared<Model>(input_, output_, args_, 0);
+  th_->load(in);
+  model_ = std::make_shared<Model>(input_, output_, th_, args_, 0);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -126,6 +128,52 @@ void FastText::cbow(Model& model, real lr,
       }
     }
     model.update(bow, line[w], lr);
+  }
+}
+
+// compute the number of context for each feature in the line
+// count #context by distances
+int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
+  int32_t boundary = args_->ws;
+  int32_t ntotal = 0;
+  std::vector<int32_t>().swap(nctxt_); 
+  for (int32_t v = 0; v < line.size(); v++) {
+    if (std::abs(line[v].time - line[n].time) <= boundary) {
+      if (v != n) {
+        ntotal += line[v].wordsID.size();
+        nctxt_.push_back(line[v].wordsID.size());
+      }
+      else {
+        ntotal += line[v].wordsID.size() - 1;
+        nctxt_.push_back(line[v].wordsID.size() - 1);
+      }
+    } 
+  }
+  return ntotal;
+}
+
+// line is a set of visits for one patient
+// forget the situation input=target
+void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& line) {
+  int32_t boundary = args_->ws;
+  std::cout << "length of line: " << line.size() << std::endl;
+  for (int32_t v = 0; v < line.size(); v++) {
+    int ntotal = countContext(line, v);
+    for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
+      const std::vector<int32_t> inWord = {line[v].wordsID[i]};
+      int32_t k = 0;
+      for (int32_t c = 0; c < line.size(); c++) {
+        if (std::abs(line[v].time - line[c].time) <= boundary) {
+          int32_t nc = nctxt_[k++];
+          int32_t dst = line[v].time - line[c].time + boundary;
+          for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
+            int32_t target = line[c].wordsID[j];
+            model.update(inWord, target, lr, dst, ntotal, nc);
+          }
+        }
+      }
+    }
+    std::cout << "finish " << v << "th visit" << std::endl; 
   }
 }
 
@@ -242,9 +290,11 @@ void FastText::printVectors() {
 
 void FastText::trainThread(int32_t threadId) {
   std::ifstream ifs(args_->input);
-  utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
+  // should seek to the beginning of the line
+  //utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
+  utils::seekToBOS(ifs, threadId * utils::size(ifs) / args_->thread);
 
-  Model model(input_, output_, args_, threadId);
+  Model model(input_, output_, th_, args_, threadId);
   if (args_->model == model_name::sup) {
     model.setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -253,19 +303,22 @@ void FastText::trainThread(int32_t threadId) {
 
   const int64_t ntokens = dict_->ntokens();
   int64_t localTokenCount = 0;
-  std::vector<int32_t> line, labels;
+  //std::vector<int32_t> line, labels;
+  std::vector<word_time> line;
+  std::vector<int32_t> labels;
   while (tokenCount < args_->epoch * ntokens) {
     real progress = real(tokenCount) / (args_->epoch * ntokens);
     real lr = args_->lr * (1.0 - progress);
-    localTokenCount += dict_->getLine(ifs, line, labels, model.rng);
-    if (args_->model == model_name::sup) {
-      dict_->addNgrams(line, args_->wordNgrams);
-      supervised(model, lr, line, labels);
-    } else if (args_->model == model_name::cbow) {
-      cbow(model, lr, line);
-    } else if (args_->model == model_name::sg) {
-      skipgram(model, lr, line);
-    }
+    localTokenCount += dict_->getLineContext(ifs, line, labels, model.rng);
+    //if (args_->model == model_name::sup) {
+    //  dict_->addNgrams(line, args_->wordNgrams);
+    //  supervised(model, lr, line, labels);
+    //} else if (args_->model == model_name::cbow) {
+    //  cbow(model, lr, line);
+    //} else if (args_->model == model_name::sg) {
+    //  skipgram(model, lr, line);
+    //}
+    sgContext(model, lr, line);
     if (localTokenCount > args_->lrUpdateRate) {
       tokenCount += localTokenCount;
       localTokenCount = 0;
@@ -340,8 +393,11 @@ void FastText::train(std::shared_ptr<Args> args) {
   if (args_->pretrainedVectors.size() != 0) {
     loadVectors(args_->pretrainedVectors);
   } else {
-    input_ = std::make_shared<Matrix>(dict_->nwords()+args_->bucket, args_->dim);
-    input_->uniform(1.0 / args_->dim);
+    //input_ = std::make_shared<Matrix>(dict_->nwords()+args_->bucket, args_->dim);
+    //input_->uniform(1.0 / args_->dim);
+    // initialize input with a standard gaussian distribution
+    input_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
+    input_->mulVarNormal();
   }
 
   if (args_->model == model_name::sup) {
@@ -350,6 +406,23 @@ void FastText::train(std::shared_ptr<Args> args) {
     output_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
   }
   output_->zero();
+
+  // initialize matrix of theta
+  th_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
+  std::vector<real> beta_a;
+  std::vector<real> beta_b;
+  int i = 0;
+  for (i = 0; i < args_->ws; i++) {
+    beta_a.push_back(args_->beta_base + i);
+    beta_b.push_back(args_->beta_base);
+  }
+  beta_a.push_back(args_->beta_base + i);
+  beta_b.push_back(args_->beta_base);
+  for (i = args_->ws - 1; i >= 0; i--) {
+    beta_a.push_back(beta_a[i]);
+    beta_b.push_back(beta_b[i]);
+  }
+  th_->beta(beta_a, beta_b);
 
   start = clock();
   tokenCount = 0;
@@ -360,7 +433,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   for (auto it = threads.begin(); it != threads.end(); ++it) {
     it->join();
   }
-  model_ = std::make_shared<Model>(input_, output_, args_, 0);
+  model_ = std::make_shared<Model>(input_, output_, th_, args_, 0);
 
   saveModel();
   if (args_->model != model_name::sup) {

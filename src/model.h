@@ -26,6 +26,8 @@
 
 namespace fasttext {
 
+//class Vector;
+
 struct Node {
   int32_t parent;
   int32_t left;
@@ -38,6 +40,7 @@ class Model {
   private:
     std::shared_ptr<Matrix> wi_;
     std::shared_ptr<Matrix> wo_;
+    std::shared_ptr<Matrix> th_;
     std::shared_ptr<Args> args_;
     Vector hidden_;
     Vector output_;
@@ -45,6 +48,7 @@ class Model {
     int32_t hsz_;
     int32_t isz_;
     int32_t osz_;
+    int32_t grad_th_;
     real loss_;
     int64_t nexamples_;
     real* t_sigmoid;
@@ -67,12 +71,15 @@ class Model {
     static const int32_t NEGATIVE_TABLE_SIZE = 10000000;
 
   public:
-    Model(std::shared_ptr<Matrix>, std::shared_ptr<Matrix>,
+    Model(std::shared_ptr<Matrix>, std::shared_ptr<Matrix>, std::shared_ptr<Matrix>,
           std::shared_ptr<Args>, int32_t);
     ~Model();
 
     real binaryLogistic(int32_t, bool, real);
     real negativeSampling(int32_t, real);
+    real nsContext(int32_t, real, int32_t, int32_t, int32_t, int32_t);
+    real genProb(int32_t, real);
+    real blContext(int32_t, bool, real, int32_t, int32_t, int32_t, int32_t);
     real hierarchicalSoftmax(int32_t, real);
     real softmax(int32_t, real);
 
@@ -87,6 +94,7 @@ class Model {
     void findKBest(int32_t, std::vector<std::pair<real, int32_t>>&,
                    Vector&, Vector&) const;
     void update(const std::vector<int32_t>&, int32_t, real);
+    void update(const std::vector<int32_t>&, int32_t, real, int32_t, int32_t, int32_t);
     void computeHidden(const std::vector<int32_t>&, Vector&) const;
     void computeOutputSoftmax(Vector&, Vector&) const;
     void computeOutputSoftmax();
@@ -97,8 +105,8 @@ class Model {
     real getLoss() const;
     real sigmoid(real) const;
     real log(real) const;
-    real mvnPdf(vector v) const;
-    real betaPdf(real th, int32_t beta_a, int32_t beta_b) const;
+    real mvnPdf(const Vector&) const;
+    real betaPdf(real, real, real) const;
 
     std::minstd_rand rng;
 };

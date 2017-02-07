@@ -13,11 +13,13 @@
 #include <istream>
 #include <ostream>
 #include <string>
+#include "real.h"
 
 namespace fasttext {
 
 enum class model_name : int {cbow=1, sg, sup};
 enum class loss_name : int {hs=1, ns, softmax};
+enum class time_unit : int {day=1, week, month, season, year};
 
 class Args {
   public:
@@ -36,6 +38,7 @@ class Args {
     int wordNgrams;
     loss_name loss;
     model_name model;
+    time_unit timeUnit;
     int bucket;
     int minn;
     int maxn;
@@ -44,6 +47,8 @@ class Args {
     std::string label;
     int verbose;
     std::string pretrainedVectors;
+    real beta_base;
+    real delta;
 
     void parseArgs(int, char**);
     void printHelp();
