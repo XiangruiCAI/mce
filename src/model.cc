@@ -63,41 +63,77 @@ real Model::genProb(int32_t target, real theta) {
   return theta * sigmoid(wo_->dotRow(hidden_, target)) + (1.0 - theta) * args_->delta;
 }
 
+/*
+real Model::normArcCos(int32_t target) {
+  real numerator = wo_->dotRow(hidden_, target); 
+  real a = wo_->lineL2(target);
+  if (a <= 0 && a > -0.00001) a = std::abs(a);
+  real b = hidden_.dot(hidden_);
+  if (b <= 0 && b > -0.00001) b = std::abs(b);
+  real denom = std::sqrt(a) * std::sqrt(b);
+  if (std::isnan(denom))
+    std::cout << "denom is nan" << std::endl;
+  if (std::abs(denom) < 0.00001) {
+    return 1;
+  } else {
+    return 1 - std::acos(numerator / denom) / M_PI;
+  }
+}
+*/
+
 // add stochastic optimization
-// modify later
-real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t ntotal, int32_t nc, int32_t input) {
+real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t ntotal, int32_t nc, int32_t input, real& pContext) {
   real score = sigmoid(wo_->dotRow(hidden_, target));
   real theta = th_->getCell(input, dst);
-  real gp = genProb(target, theta);
+  //if (std::isnan(theta)) {
+  //  std::cout << "pos: " << input << " " << dst << std::endl;
+  //  std::cout << "right here!" << std::endl;
+  //  std::cout << "pContext: " << pContext << std::endl;
+  //  std::cout << "weight: " << weight << std::endl;
+  //}
   real rGaussian = -log(mvnPdf(hidden_)) / (ntotal * (args_->neg + 1));
-  real a = std::abs(dst-args_->ws)+args_->beta_base;
+  //real a = std::abs(dst-args_->ws)+args_->beta_base;
+  real a = args_->beta_base;
   real b = args_->beta_base;
-  real rBeta = -log(betaPdf(theta, a, b)) / (nc * (args_->neg));
+  real rBeta = -log(betaPdf(theta, a, b)) / (nc * (args_->neg + 1));
+  //real grad_th = ((a-1)/theta + (b-1)/(1-theta))/ (nc * (args_->neg + 1));
   if (label) {
-    real alpha = lr * ((1.0 - score) * score / gp);
+    //int32_t cur_weight = wo_->dotRow(hidden_, target);
+    //if (cur_weight > 0)
+    //  cur_weight = 1;
+    //else
+    //  cur_weight = 0;
+    //weight += cur_weight;
+    pContext += score;
+    //std::cout << "cur_weight: " << cur_weight << std::endl;
+    //std::cout << "pContext: " << pContext << std::endl;
+    //std::cout << "weight: " << weight << std::endl;
+    real gp = theta * score + (1 - theta) * args_->delta;//genProb(target, theta);
+    real alpha = lr * (theta * (1.0 - score) * score / gp);
     grad_.addRow(*wo_, target, alpha);
-    grad_.add(hidden_, -1.0 / (ntotal * (args_->neg + 1)));
-    wo_->addRow(hidden_, target, theta * alpha);
-    real grad_th = ((a-1)/theta + (b-1)/(1-theta))/nc + (score-args_->delta)/gp;
-    th_->updateCell(input, dst, theta - lr * grad_th);
+    //grad_.add(hidden_, -1.0 / (ntotal * (args_->neg + 1)));
+    wo_->addRow(hidden_, target, alpha);
+    //grad_th += (score - args_->delta) / gp;
+    //th_->updateCell(input, dst, theta + lr * grad_th);
     return -log(gp) + rGaussian + rBeta;
   } else {
     real alpha = lr * (0.0 - score);
     grad_.addRow(*wo_, target, alpha);
-    grad_.add(hidden_, -1.0 / (ntotal * (args_->neg + 1)));
+    //grad_.add(hidden_, -1.0 / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
+    //th_->updateCell(input, dst, theta + lr * grad_th);
     return -log(1.0 - score) + rGaussian + rBeta;
   }
 }
 
-real Model::nsContext(int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t nc, int32_t input) {
+real Model::nsContext(int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t nc, int32_t input, real& pContext) {
   real loss = 0.0;
   grad_.zero();
   for (int32_t n = 0; n <= args_->neg; n++) {
     if (n == 0) {
-      loss += blContext(target, true, lr, dst, ntotal, nc, input);
+      loss += blContext(target, true, lr, dst, ntotal, nc, input, pContext);
     } else {
-      loss += blContext(getNegative(target), false, lr, dst, ntotal, nc, input);
+      loss += blContext(getNegative(target), false, lr, dst, ntotal, nc, input, pContext);
     }
   }
   return loss;
@@ -232,13 +268,14 @@ void Model::dfs(int32_t k, int32_t node, real score,
 // dst: the distance between context feature and current feature
 // ntotal: the total number of context features
 // nc: number of features at dst from current feature
-void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t nc) {
+void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t nc, real& pContext) {
   assert(target >= 0);
   assert(target < osz_);
   assert(args_->loss == loss_name::ns);
   if (input.size() == 0) return;
   computeHidden(input, hidden_);
-  loss_ += nsContext(target, lr, dst, ntotal, nc, input[0]);
+  loss_ += nsContext(target, lr, dst, ntotal, nc, input[0], pContext);
+  //loss_ += negativeSampling(target, lr);
   nexamples_ += 1;
 
   if (args_->model == model_name::sup) {

@@ -10,7 +10,6 @@
 #include "utils.h"
 
 #include <ios>
-#include <iostream>
 
 namespace fasttext {
 
@@ -35,7 +34,6 @@ namespace utils {
       if (c == '\n')
         break;
     }
-    std::cout << "seek position: " << pos - off + 1 << std::endl;
     ifs.seekg(std::streampos(pos - off + 1));
   }
 }

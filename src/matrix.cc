@@ -125,11 +125,32 @@ void Matrix::load(std::istream& in) {
 }
 
 real Matrix::getCell(int64_t i, int64_t j) {
-  return data_[i * m_ + j];
+  return data_[i * n_ + j];
 }
 
 void Matrix::updateCell(int64_t i, int64_t j, real value) {
-  data_[i * m_ + j] = value;
+  data_[i * n_ + j] = value;
 }
 
+real Matrix::lineL2(int64_t i) {
+  real l2 = 0.0;
+  for (int64_t j = 0; j < n_; j++) {
+    l2 += data_[i * n_ + j] * data_[i * n_ + j];
+  }
+  return l2;
+}
+
+real Matrix::l1() {
+  real l1 = 0.0;
+  for (int64_t i = 0; i < (m_ * n_); i++) {
+    l1 += data_[i] < 0 ? -data_[i] : data_[i];
+  }
+  return l1 / (m_ * n_);
+}
+
+void Matrix::set(real value) {
+  for (int64_t i = 0; i < (m_ * n_); i++) {
+    data_[i] = value;
+  }
+}
 }

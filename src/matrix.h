@@ -43,6 +43,9 @@ class Matrix {
   void beta(std::vector<real> a, std::vector<real> b);
   real dotRow(const Vector&, int64_t);
   void addRow(const Vector&, int64_t, real);
+  real lineL2(int64_t);
+  real l1();
+  void set(real);
 
   void save(std::ostream&);
   void load(std::istream&);

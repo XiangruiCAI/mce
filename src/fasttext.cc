@@ -31,6 +31,11 @@ void FastText::getVector(Vector& vec, const std::string& word) {
   }
 }
 
+void FastText::getVector(Vector& vec, const int32_t wordID) {
+  vec.zero();
+  vec.addRow(*input_, wordID);
+}
+
 void FastText::saveVectors() {
   std::ofstream ofs(args_->output + ".vec");
   if (!ofs.is_open()) {
@@ -41,7 +46,8 @@ void FastText::saveVectors() {
   Vector vec(args_->dim);
   for (int32_t i = 0; i < dict_->nwords(); i++) {
     std::string word = dict_->getWord(i);
-    getVector(vec, word);
+    //getVector(vec, word);
+    getVector(vec, i);
     ofs << word << " " << vec << std::endl;
   }
   ofs.close();
@@ -136,16 +142,20 @@ void FastText::cbow(Model& model, real lr,
 int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
   int32_t boundary = args_->ws;
   int32_t ntotal = 0;
-  std::vector<int32_t>().swap(nctxt_); 
+  //std::vector<int32_t>().swap(nctxt_); 
   for (int32_t v = 0; v < line.size(); v++) {
+    //if (line[v].wordsID.size() == 0)
+    //  continue;
     if (std::abs(line[v].time - line[n].time) <= boundary) {
       if (v != n) {
         ntotal += line[v].wordsID.size();
-        nctxt_.push_back(line[v].wordsID.size());
+        //nctxt_.push_back(line[v].wordsID.size());
       }
       else {
+        //if (line[v].wordsID.size() == 1)
+        //  continue;
         ntotal += line[v].wordsID.size() - 1;
-        nctxt_.push_back(line[v].wordsID.size() - 1);
+        //nctxt_.push_back(line[v].wordsID.size() - 1);
       }
     } 
   }
@@ -156,24 +166,37 @@ int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
 // forget the situation input=target
 void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& line) {
   int32_t boundary = args_->ws;
-  std::cout << "length of line: " << line.size() << std::endl;
+  //std::cout << "length of line: " << line.size() << std::endl;
   for (int32_t v = 0; v < line.size(); v++) {
     int ntotal = countContext(line, v);
+    if (ntotal == 0)
+        continue;
     for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
       const std::vector<int32_t> inWord = {line[v].wordsID[i]};
       int32_t k = 0;
       for (int32_t c = 0; c < line.size(); c++) {
         if (std::abs(line[v].time - line[c].time) <= boundary) {
-          int32_t nc = nctxt_[k++];
+          int32_t nc = line[c].wordsID.size();
+          if (c == v)
+            nc -= 1;
+          if (nc == 0)
+            continue;
           int32_t dst = line[v].time - line[c].time + boundary;
+          real pContext = 0.0;
           for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
             int32_t target = line[c].wordsID[j];
-            model.update(inWord, target, lr, dst, ntotal, nc);
+            if (target != inWord[0])
+              model.update(inWord, target, lr, dst, ntotal, nc, pContext);
           }
+          //std::cout << "pContext: " << pContext << std::endl;
+          //std::cout << "weight: " << weight << std::endl;
+          //std::cout << "update theta: " << pContext/weight << std::endl;
+          //th_->updateCell(line[v].wordsID[i], dst, pContext / nc);
+          th_->updateCell(line[v].wordsID[i], dst, 1.0);
         }
       }
     }
-    std::cout << "finish " << v << "th visit" << std::endl; 
+    //std::cout << "finish " << v << "th visit" << std::endl; 
   }
 }
 
@@ -324,6 +347,7 @@ void FastText::trainThread(int32_t threadId) {
       localTokenCount = 0;
       if (threadId == 0 && args_->verbose > 1) {
         printInfo(progress, model.getLoss());
+        std::cout << "input l1 norm: " << input_->l1() << std::endl;
       }
     }
   }
@@ -397,7 +421,8 @@ void FastText::train(std::shared_ptr<Args> args) {
     //input_->uniform(1.0 / args_->dim);
     // initialize input with a standard gaussian distribution
     input_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
-    input_->mulVarNormal();
+    //input_->mulVarNormal();
+    input_->uniform(1.0 / args_->dim);
   }
 
   if (args_->model == model_name::sup) {
@@ -406,23 +431,31 @@ void FastText::train(std::shared_ptr<Args> args) {
     output_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
   }
   output_->zero();
+  //output_->uniform(1.0 / args_->dim);
 
   // initialize matrix of theta
   th_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
+  std::cout << "shape of theta: " << dict_->nwords() << " " << args_->ws * 2 + 1 << std::endl;
+  //th_->uniform(1.0 / (args_->ws * 2 + 1));
   std::vector<real> beta_a;
   std::vector<real> beta_b;
   int i = 0;
-  for (i = 0; i < args_->ws; i++) {
-    beta_a.push_back(args_->beta_base + i);
+  for (i = 0; i < args_->ws * 2 + 1; i++) {
+    beta_a.push_back(args_->beta_base);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(args_->beta_base + i);
-  beta_b.push_back(args_->beta_base);
-  for (i = args_->ws - 1; i >= 0; i--) {
-    beta_a.push_back(beta_a[i]);
-    beta_b.push_back(beta_b[i]);
-  }
-  th_->beta(beta_a, beta_b);
+  //for (i = 0; i < args_->ws; i++) {
+  //  beta_a.push_back(args_->beta_base + i);
+  //  beta_b.push_back(args_->beta_base);
+  //}
+  //beta_a.push_back(args_->beta_base + i);
+  //beta_b.push_back(args_->beta_base);
+  //for (i = args_->ws - 1; i >= 0; i--) {
+  //  beta_a.push_back(beta_a[i]);
+  //  beta_b.push_back(beta_b[i]);
+  //}
+  //th_->beta(beta_a, beta_b);
+  th_->set(1.0);
 
   start = clock();
   tokenCount = 0;

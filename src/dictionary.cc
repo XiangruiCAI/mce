@@ -30,7 +30,7 @@ Dictionary::Dictionary(std::shared_ptr<Args> args) {
   nlabels_ = 0;
   ntokens_ = 0;
   word2int_.resize(MAX_VOCAB_SIZE);
-  brackets_ = std::make_shared<std::stack<char>>();
+  //brackets_ = std::make_shared<std::stack<char>>();
   for (int32_t i = 0; i < MAX_VOCAB_SIZE; i++) {
     word2int_[i] = -1;
   }
@@ -164,10 +164,10 @@ bool Dictionary::readWord(std::istream& in, std::string& word) const {
     if (c != ' ' && c != '\r' && c != '\t' && c != '\v' && c != '\f' &&
         c != '\0') {
       if (c == '[') {
-        brackets_->push(c);
+        brackets_++;
       } else if (c == ']') {
-        if (!brackets_->empty()) brackets_->pop();
-      } else if (brackets_->size() == 3) {
+        if (brackets_ > 0) brackets_--;
+      } else if (brackets_ == 3) {
         word.push_back(c);
       }
     }
@@ -177,7 +177,7 @@ bool Dictionary::readWord(std::istream& in, std::string& word) const {
   return !word.empty();
 }
 
-bool Dictionary::readWordTime(std::istream& in, std::string& word, flag_time& flag) const {
+bool Dictionary::readWordTime(std::istream& in, std::string& word, flag_time& flag, int32_t& nBrackets) const {
   char c;
   std::streambuf& sb = *in.rdbuf();
   word.clear();
@@ -200,13 +200,15 @@ bool Dictionary::readWordTime(std::istream& in, std::string& word, flag_time& fl
       //std::cout<<"c: " << c <<std::endl;
       //std::cout<<"brackets_->size():" << brackets_->size()<<std::endl;
       if (c == '[') {
-        brackets_->push(c);
+        nBrackets++;
+        //brackets_->push(c);
       } else if (c == ']') {
-        if (!brackets_->empty()) brackets_->pop();
-      } else if (brackets_->size() == 2) {
+        //if (!brackets_->empty()) brackets_->pop();
+        if (nBrackets > 0) nBrackets--;
+      } else if (nBrackets == 2) {
         word.push_back(c);
         flag = flag_time::time;
-      } else if (brackets_->size() == 3) {
+      } else if (nBrackets == 3) {
         word.push_back(c);
         flag = flag_time::word;
       }
@@ -226,7 +228,7 @@ void Dictionary::clearStack(std::shared_ptr<std::stack<char>> t) const {
 void Dictionary::readFromFile(std::istream& in) {
   std::string word;
   int64_t minThreshold = 1;
-  clearStack(brackets_);
+  //clearStack(brackets_);
   while (readWord(in, word)) {
     add(word);
     if (ntokens_ % 1000000 == 0 && args_->verbose > 1) {
@@ -345,8 +347,8 @@ int64_t Dictionary::timeConvert(std::string begin_time,
     time_u = 30 * 24 * 3600;
   else
     time_u = 365 * 24 * 3600;
-  b_time = std::stoi(begin_time);
-  c_time = std::stoi(current_time);
+  b_time = std::stof(begin_time);
+  c_time = std::stof(current_time);
   result = int64_t((c_time - b_time) / float(time_u) + 0.5);
   return result;
 }
@@ -366,12 +368,13 @@ int32_t Dictionary::getLineContext(std::istream& in,
     in.clear();
     in.seekg(std::streampos(0));
   }
-  clearStack(brackets_);
+  //clearStack(brackets_);
   word_time wtime;
   wtime.time = -1;
   std::string begin_time;
   int64_t token_time;
-  while (readWordTime(in, token, flag)) {
+  int32_t nBrackets = 0;
+  while (readWordTime(in, token, flag, nBrackets)) {
     if (flag == flag_time::time) {
       //std::cout << "flag in getLineContext: " << int(flag) << std::endl;
       //std::cout << "wtime.time: " << wtime.time << std::endl;
@@ -386,7 +389,7 @@ int32_t Dictionary::getLineContext(std::istream& in,
           continue;
         }
         words_time.push_back(wtime);
-        ntokens += wtime.wordsID.size();
+        //ntokens += wtime.wordsID.size();
         //std::cout << "num of words in wordsID: " << wtime.wordsID.size() << std::endl;
         wtime.time = token_time;
         wtime.wordsID.clear();
@@ -399,6 +402,7 @@ int32_t Dictionary::getLineContext(std::istream& in,
       entry_type type = getType(wid);
       //bool isDiscard = discard(wid, uniform(rng));
       //std::cout << "isDiscard: " << isDiscard << std::endl;
+      ntokens++;
       if (type == entry_type::word && !discard(wid, uniform(rng))) {
         //std::cout << "wid: " << wid << std::endl;
         wtime.wordsID.push_back(wid);
@@ -410,8 +414,6 @@ int32_t Dictionary::getLineContext(std::istream& in,
         break;
       if (token == EOS) {
         words_time.push_back(wtime);
-        ntokens += wtime.wordsID.size();
-        //std::cout << "num of words in wordsID: " << wtime.wordsID.size() << std::endl;
         break;
       } 
     }

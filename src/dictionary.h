@@ -48,7 +48,8 @@ class Dictionary {
     void initTableDiscard();
     void initNgrams();
 
-    std::shared_ptr<std::stack<char>> brackets_;//count how many square brackets
+    //std::shared_ptr<std::stack<char>> brackets_;//count how many square brackets
+    mutable int brackets_;
     std::shared_ptr<Args> args_;
     std::vector<int32_t> word2int_;
     std::vector<entry> words_;
@@ -77,7 +78,7 @@ class Dictionary {
     uint32_t hash(const std::string& str) const;
     void add(const std::string&);
     bool readWord(std::istream&, std::string&) const;
-    bool readWordTime(std::istream&, std::string&, flag_time&) const;
+    bool readWordTime(std::istream&, std::string&, flag_time&, int32_t&) const;
     void clearStack(std::shared_ptr<std::stack<char>>) const;
     void readFromFile(std::istream&);
     std::string getLabel(int32_t) const;

@@ -35,10 +35,11 @@ class FastText {
     std::shared_ptr<Model> model_;
     std::atomic<int64_t> tokenCount;
     clock_t start;
-    std::vector<int32_t> nctxt_;
+    //std::vector<int32_t> nctxt_;
 
   public:
     void getVector(Vector&, const std::string&);
+    void getVector(Vector&, const int32_t);
     void saveVectors();
     void saveModel();
     void loadModel(const std::string&);
