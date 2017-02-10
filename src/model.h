@@ -77,9 +77,8 @@ class Model {
 
     real binaryLogistic(int32_t, bool, real);
     real negativeSampling(int32_t, real);
-    real nsContext(int32_t, real, int32_t, int32_t, int32_t, int32_t, real&);
-    real genProb(int32_t, real);
-    real blContext(int32_t, bool, real, int32_t, int32_t, int32_t, int32_t, real&);
+    real nsContext(int32_t, real, int32_t, int32_t, int32_t, real&);
+    real blContext(int32_t, bool, real, int32_t, int32_t, int32_t, real&);
     real hierarchicalSoftmax(int32_t, real);
     real softmax(int32_t, real);
 
@@ -94,7 +93,7 @@ class Model {
     void findKBest(int32_t, std::vector<std::pair<real, int32_t>>&,
                    Vector&, Vector&) const;
     void update(const std::vector<int32_t>&, int32_t, real);
-    void update(const std::vector<int32_t>&, int32_t, real, int32_t, int32_t, int32_t, real&);
+    void update(const std::vector<int32_t>&, int32_t, real, int32_t, int32_t, real&);
     void computeHidden(const std::vector<int32_t>&, Vector&) const;
     void computeOutputSoftmax(Vector&, Vector&) const;
     void computeOutputSoftmax();
@@ -102,6 +101,8 @@ class Model {
     void setTargetCounts(const std::vector<int64_t>&);
     void initTableNegatives(const std::vector<int64_t>&);
     void buildTree(const std::vector<int64_t>&);
+    void addGLoss();
+    void addBLoss(real, real, real);
     real getLoss() const;
     real sigmoid(real) const;
     real log(real) const;

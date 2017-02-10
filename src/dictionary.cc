@@ -82,6 +82,8 @@ const std::vector<int32_t> Dictionary::getNgrams(
   return ngrams;
 }
 
+int32_t Dictionary::getWordCount(int32_t i) { return words_[i].count; }
+
 bool Dictionary::discard(int32_t id, real rand) const {
   assert(id >= 0);
   assert(id < nwords_);

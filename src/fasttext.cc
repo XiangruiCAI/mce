@@ -53,6 +53,24 @@ void FastText::saveVectors() {
   ofs.close();
 }
 
+void FastText::saveTheta() {
+  std::ofstream ofs(args_->output + ".theta");
+  if (!ofs.is_open()) {
+    std::cout << "Error opening file for saving vectors." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  ofs << dict_->nwords() << " " << args_->ws * 2 + 1 << std::endl;
+  Vector vec(args_->ws * 2 + 1);
+  for (int32_t i = 0; i < dict_->nwords(); i++) {
+    std::string word = dict_->getWord(i);
+    //int32_t count = dict_->getWordCount(i);
+    vec.zero();
+    vec.addRow(*th_, i);
+    ofs << word << " " << vec << std::endl;
+  }
+  ofs.close();
+}
+
 void FastText::saveModel() {
   std::ofstream ofs(args_->output + ".bin", std::ofstream::binary);
   if (!ofs.is_open()) {
@@ -173,6 +191,7 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
         continue;
     for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
       const std::vector<int32_t> inWord = {line[v].wordsID[i]};
+      model.addGLoss();
       int32_t k = 0;
       for (int32_t c = 0; c < line.size(); c++) {
         if (std::abs(line[v].time - line[c].time) <= boundary) {
@@ -181,18 +200,26 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
             nc -= 1;
           if (nc == 0)
             continue;
-          int32_t dst = line[v].time - line[c].time + boundary;
+          int32_t dst = line[c].time - line[v].time + boundary;
+          real a = 0.0;
+          if (dst <= boundary)
+            a = dst + 1;
+          else
+            a = 2 * args_->ws + 1 - dst;
+          model.addBLoss(a , args_->beta_base, th_->getCell(inWord[0], dst));
           real pContext = 0.0;
           for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
             int32_t target = line[c].wordsID[j];
             if (target != inWord[0])
-              model.update(inWord, target, lr, dst, ntotal, nc, pContext);
+              model.update(inWord, target, lr, dst, ntotal, pContext);
           }
           //std::cout << "pContext: " << pContext << std::endl;
           //std::cout << "weight: " << weight << std::endl;
           //std::cout << "update theta: " << pContext/weight << std::endl;
-          //th_->updateCell(line[v].wordsID[i], dst, pContext / nc);
-          th_->updateCell(line[v].wordsID[i], dst, 1.0);
+          real theta = th_->getCell(line[v].wordsID[i], dst);
+          theta = theta + args_->lr * (pContext / nc - theta);
+          th_->updateCell(line[v].wordsID[i], dst, theta);
+          //th_->updateCell(line[v].wordsID[i], dst, 1.0);
         }
       }
     }
@@ -347,7 +374,10 @@ void FastText::trainThread(int32_t threadId) {
       localTokenCount = 0;
       if (threadId == 0 && args_->verbose > 1) {
         printInfo(progress, model.getLoss());
-        std::cout << "input l1 norm: " << input_->l1() << std::endl;
+        //std::cout << "input l1 norm: " << input_->l1() 
+        //    << " theta l1 norm " << th_->l1() 
+        //    << " ouput l1 norm " << output_->l1() 
+        //    << std::endl;
       }
     }
   }
@@ -421,8 +451,8 @@ void FastText::train(std::shared_ptr<Args> args) {
     //input_->uniform(1.0 / args_->dim);
     // initialize input with a standard gaussian distribution
     input_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
-    //input_->mulVarNormal();
-    input_->uniform(1.0 / args_->dim);
+    input_->mulVarNormal();
+    //input_->uniform(1.0 / args_->dim / 10);
   }
 
   if (args_->model == model_name::sup) {
@@ -440,22 +470,24 @@ void FastText::train(std::shared_ptr<Args> args) {
   std::vector<real> beta_a;
   std::vector<real> beta_b;
   int i = 0;
-  for (i = 0; i < args_->ws * 2 + 1; i++) {
-    beta_a.push_back(args_->beta_base);
-    beta_b.push_back(args_->beta_base);
-  }
-  //for (i = 0; i < args_->ws; i++) {
-  //  beta_a.push_back(args_->beta_base + i);
+  //for (i = 0; i < args_->ws * 2 + 1; i++) {
+  //  beta_a.push_back(args_->beta_base);
   //  beta_b.push_back(args_->beta_base);
   //}
-  //beta_a.push_back(args_->beta_base + i);
-  //beta_b.push_back(args_->beta_base);
-  //for (i = args_->ws - 1; i >= 0; i--) {
-  //  beta_a.push_back(beta_a[i]);
-  //  beta_b.push_back(beta_b[i]);
-  //}
-  //th_->beta(beta_a, beta_b);
-  th_->set(1.0);
+  for (i = 0; i < args_->ws; i++) {
+    beta_a.push_back(i + 1);
+    beta_b.push_back(args_->beta_base);
+  }
+  beta_a.push_back(i + 1);
+  beta_b.push_back(args_->beta_base);
+  for (i = args_->ws - 1; i >= 0; i--) {
+    beta_a.push_back(beta_a[i]);
+    beta_b.push_back(beta_b[i]);
+  }
+  th_->beta(beta_a, beta_b);
+  //saveTheta();
+  //return;
+  //th_->set(1.0);
 
   start = clock();
   tokenCount = 0;
@@ -471,6 +503,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   saveModel();
   if (args_->model != model_name::sup) {
     saveVectors();
+    saveTheta();
   }
 }
 
