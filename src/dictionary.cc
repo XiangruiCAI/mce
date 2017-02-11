@@ -347,8 +347,10 @@ int64_t Dictionary::timeConvert(std::string begin_time,
     time_u = 7 * 24 * 3600;
   else if (args_->timeUnit == time_unit::month)
     time_u = 30 * 24 * 3600;
-  else
+  else if (args_->timeUnit == time_unit::year)
     time_u = 365 * 24 * 3600;
+  else
+    time_u = 3600;
   b_time = std::stof(begin_time);
   c_time = std::stof(current_time);
   result = int64_t((c_time - b_time) / float(time_u) + 0.5);
@@ -365,6 +367,7 @@ int32_t Dictionary::getLineContext(std::istream& in,
   int32_t ntokens = 0;  // the number of visit, combing visits within a time
                         // unit
   words_time.clear();
+  std::vector<word_time>().swap(words_time);
   labels.clear();
   if (in.eof()) {
     in.clear();
@@ -390,11 +393,15 @@ int32_t Dictionary::getLineContext(std::istream& in,
         if (wtime.time == token_time) {
           continue;
         }
-        words_time.push_back(wtime);
+        if (wtime.wordsID.size() > 0)
+          words_time.push_back(wtime);
+        if (words_time.size() > MAX_LINE_SIZE && args_->model != model_name::sup)
+          break;
         //ntokens += wtime.wordsID.size();
         //std::cout << "num of words in wordsID: " << wtime.wordsID.size() << std::endl;
         wtime.time = token_time;
         wtime.wordsID.clear();
+        std::vector<int32_t>().swap(wtime.wordsID);
       }
       //std::cout << "wtime.time 2: " << wtime.time << std::endl;
     }
@@ -409,13 +416,13 @@ int32_t Dictionary::getLineContext(std::istream& in,
         //std::cout << "wid: " << wid << std::endl;
         wtime.wordsID.push_back(wid);
       }
-      if (type == entry_type::label) {
-        labels.push_back(wid - nwords_);
-      }
-      if (words_time.size() > MAX_LINE_SIZE && args_->model != model_name::sup)
-        break;
+      //if (type == entry_type::label) {
+      //  labels.push_back(wid - nwords_);
+      //}
       if (token == EOS) {
         words_time.push_back(wtime);
+        wtime.wordsID.clear();
+        std::vector<int32_t>().swap(wtime.wordsID);
         break;
       } 
     }

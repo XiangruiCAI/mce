@@ -165,19 +165,21 @@ int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
     //if (line[v].wordsID.size() == 0)
     //  continue;
     if (std::abs(line[v].time - line[n].time) <= boundary) {
-      if (v != n) {
+      //if (v != n) {
         ntotal += line[v].wordsID.size();
         //nctxt_.push_back(line[v].wordsID.size());
-      }
-      else {
+      //}
+      //else {
         //if (line[v].wordsID.size() == 1)
         //  continue;
-        ntotal += line[v].wordsID.size() - 1;
+        //ntotal += line[v].wordsID.size() - 1;
         //nctxt_.push_back(line[v].wordsID.size() - 1);
-      }
+      //}
     } 
+    if (line[v].time - line[n].time > boundary)
+        break;
   }
-  return ntotal;
+  return ntotal - 1;
 }
 
 // line is a set of visits for one patient
@@ -191,7 +193,7 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
         continue;
     for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
       const std::vector<int32_t> inWord = {line[v].wordsID[i]};
-      model.addGLoss();
+      model.addGLoss(inWord);
       int32_t k = 0;
       for (int32_t c = 0; c < line.size(); c++) {
         if (std::abs(line[v].time - line[c].time) <= boundary) {
@@ -216,9 +218,7 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           //std::cout << "pContext: " << pContext << std::endl;
           //std::cout << "weight: " << weight << std::endl;
           //std::cout << "update theta: " << pContext/weight << std::endl;
-          real theta = th_->getCell(line[v].wordsID[i], dst);
-          theta = theta + args_->lr * (pContext / nc - theta);
-          th_->updateCell(line[v].wordsID[i], dst, theta);
+          th_->updateCell(inWord[0], dst, pContext / nc);
           //th_->updateCell(line[v].wordsID[i], dst, 1.0);
         }
       }
@@ -452,7 +452,6 @@ void FastText::train(std::shared_ptr<Args> args) {
     // initialize input with a standard gaussian distribution
     input_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
     input_->mulVarNormal();
-    //input_->uniform(1.0 / args_->dim / 10);
   }
 
   if (args_->model == model_name::sup) {
@@ -461,12 +460,10 @@ void FastText::train(std::shared_ptr<Args> args) {
     output_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
   }
   output_->zero();
-  //output_->uniform(1.0 / args_->dim);
 
   // initialize matrix of theta
   th_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
   std::cout << "shape of theta: " << dict_->nwords() << " " << args_->ws * 2 + 1 << std::endl;
-  //th_->uniform(1.0 / (args_->ws * 2 + 1));
   std::vector<real> beta_a;
   std::vector<real> beta_b;
   int i = 0;

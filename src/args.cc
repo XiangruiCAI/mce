@@ -130,6 +130,8 @@ void Args::parseArgs(int argc, char** argv) {
         timeUnit = time_unit::month;
       } else if (tmunit == "year") {
         timeUnit = time_unit::year;
+      } else if (tmunit == "hour") {
+        timeUnit = time_unit::hour;
       }
     } else {
       std::cout << "Unknown argument: " << argv[ai] << std::endl;

@@ -101,7 +101,7 @@ class Model {
     void setTargetCounts(const std::vector<int64_t>&);
     void initTableNegatives(const std::vector<int64_t>&);
     void buildTree(const std::vector<int64_t>&);
-    void addGLoss();
+    void addGLoss(const std::vector<int32_t>&);
     void addBLoss(real, real, real);
     real getLoss() const;
     real sigmoid(real) const;
