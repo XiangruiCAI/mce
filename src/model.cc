@@ -72,24 +72,40 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t 
   real score = sigmoid(wo_->dotRow(hidden_, target));
   real theta = th_->getCell(input, dst);
   if (label) {
-    pContext += score;
+    if (score > 0.5)
+      pContext += 1;
     real alpha = 0.0;
+    real grad_th = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
     if (std::abs(gp) < 0.0001) {
       alpha = lr * (1.0 - score);
+      if (1.0 - theta < 0.0001) {
+        grad_th = -0.5 * theta;
+      } else {
+        grad_th = -lr / (1 - theta);
+      }
     } else {
       alpha = lr * (theta * (1.0 - score) * score / gp);
+      grad_th = lr * (score - args_->delta) / gp;
     }
     grad_.addRow(*wo_, target, alpha);
     // use stochastic optimization to approximate L2 regularization
     // the 0.01 is decided by the frequency of f_i
-    //grad_.add(hidden_, -0.01 * lr / ntotal);
+    //grad_.add(hidden_, -0.001 * lr / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
+    if (theta + grad_th > 1.0) {
+      grad_th = 0.5 * (1.0 - theta);
+    }
+    if (theta + grad_th < 0) {
+      grad_th = -0.5 * theta;
+    }
+    //std::cout << "updated theta: " << theta + grad_th << std::endl;
+    th_->updateCell(input, dst, theta + grad_th);
     return -log(gp);
   } else {
     real alpha = lr * (0.0 - score);
     grad_.addRow(*wo_, target, alpha);
-    //grad_.add(hidden_, -0.01 * lr / (ntotal * (args_->neg + 1)));
+    //grad_.add(hidden_, -0.001 * lr / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
     return -log(1.0 - score);
   }

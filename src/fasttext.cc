@@ -217,9 +217,11 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           }
           //std::cout << "pContext: " << pContext << std::endl;
           //std::cout << "weight: " << weight << std::endl;
-          //std::cout << "update theta: " << pContext/weight << std::endl;
+          //std::cout << "pContext: " << inWord[0] << "," << dst << ": " << pContext << " " << nc << std::endl;
+          //real theta = th_->getCell(inWord[0], dst);
+          //theta = theta + 0.5 * ((pContext / nc) - theta);
           //th_->updateCell(inWord[0], dst, pContext / nc);
-          th_->updateCell(inWord[0], dst, 1.0);
+          //th_->updateCell(inWord[0], dst, 1.0);
         }
       }
     }
@@ -374,10 +376,10 @@ void FastText::trainThread(int32_t threadId) {
       localTokenCount = 0;
       if (threadId == 0 && args_->verbose > 1) {
         printInfo(progress, model.getLoss());
-        //std::cout << "input l1 norm: " << input_->l1() 
-        //    << " theta l1 norm " << th_->l1() 
-        //    << " ouput l1 norm " << output_->l1() 
-        //    << std::endl;
+        std::cout << "input l1 norm: " << input_->l1() 
+            << " theta l1 norm " << th_->l1() 
+            << " ouput l1 norm " << output_->l1() 
+            << std::endl;
       }
     }
   }
@@ -465,23 +467,23 @@ void FastText::train(std::shared_ptr<Args> args) {
   // initialize matrix of theta
   th_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
   //std::cout << "shape of theta: " << dict_->nwords() << " " << args_->ws * 2 + 1 << std::endl;
-  //std::vector<real> beta_a;
-  //std::vector<real> beta_b;
-  //int i = 0;
-  //for (i = 0; i < args_->ws; i++) {
-  //  beta_a.push_back(i + 1);
-  //  beta_b.push_back(args_->beta_base);
-  //}
-  //beta_a.push_back(i + 1);
-  //beta_b.push_back(args_->beta_base);
-  //for (i = args_->ws - 1; i >= 0; i--) {
-  //  beta_a.push_back(beta_a[i]);
-  //  beta_b.push_back(beta_b[i]);
-  //}
-  //th_->beta(beta_a, beta_b);
+  std::vector<real> beta_a;
+  std::vector<real> beta_b;
+  int i = 0;
+  for (i = 0; i < args_->ws; i++) {
+    beta_a.push_back(i + 1);
+    beta_b.push_back(args_->beta_base);
+  }
+  beta_a.push_back(i + 1);
+  beta_b.push_back(args_->beta_base);
+  for (i = args_->ws - 1; i >= 0; i--) {
+    beta_a.push_back(beta_a[i]);
+    beta_b.push_back(beta_b[i]);
+  }
+  th_->beta(beta_a, beta_b);
   //saveTheta();
   //return;
-  th_->set(1.0);
+  //th_->set(1.0);
 
   start = clock();
   tokenCount = 0;
