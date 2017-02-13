@@ -72,7 +72,7 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t 
   real score = sigmoid(wo_->dotRow(hidden_, target));
   real theta = th_->getCell(input, dst);
   if (label) {
-    pContext += (1.0 - score);
+    pContext += score;
     real alpha = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
     if (std::abs(gp) < 0.0001) {
@@ -83,7 +83,7 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t 
     grad_.addRow(*wo_, target, alpha);
     // use stochastic optimization to approximate L2 regularization
     // the 0.01 is decided by the frequency of f_i
-    grad_.add(hidden_, -0.01 * lr / ntotal);
+    //grad_.add(hidden_, -0.01 * lr / ntotal);
     wo_->addRow(hidden_, target, alpha);
     return -log(gp);
   } else {
