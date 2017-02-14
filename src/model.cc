@@ -94,10 +94,10 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t 
     //grad_.add(hidden_, -0.001 * lr / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
     if (theta + grad_th > 1.0) {
-      grad_th = 0.5 * (1.0 - theta) * grad_th / (lr * 10000);
+      grad_th = 0.5 * (1.0 - theta);
     }
     if (theta + grad_th < 0) {
-      grad_th = 0.5 * theta * grad_th /  (lr * 10000);
+      grad_th = -0.5 * theta;
     }
     //std::cout << "updated theta: " << theta + grad_th << std::endl;
     th_->updateCell(input, dst, theta + grad_th);
