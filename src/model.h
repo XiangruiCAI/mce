@@ -77,8 +77,8 @@ class Model {
 
     real binaryLogistic(int32_t, bool, real);
     real negativeSampling(int32_t, real);
-    real nsContext(int32_t, real, int32_t, int32_t, int32_t, real&);
-    real blContext(int32_t, bool, real, int32_t, int32_t, int32_t, real&);
+    real nsContext(int32_t, real, real, real&);
+    real blContext(int32_t, bool, real, real, real&);
     real hierarchicalSoftmax(int32_t, real);
     real softmax(int32_t, real);
 
@@ -93,7 +93,7 @@ class Model {
     void findKBest(int32_t, std::vector<std::pair<real, int32_t>>&,
                    Vector&, Vector&) const;
     void update(const std::vector<int32_t>&, int32_t, real);
-    void update(const std::vector<int32_t>&, int32_t, real, int32_t, int32_t, real&);
+    void update(const std::vector<int32_t>&, int32_t, real, real, real&);
     void computeHidden(const std::vector<int32_t>&, Vector&) const;
     void computeOutputSoftmax(Vector&, Vector&) const;
     void computeOutputSoftmax();

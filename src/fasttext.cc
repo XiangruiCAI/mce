@@ -188,9 +188,9 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
   int32_t boundary = args_->ws;
   //std::cout << "length of line: " << line.size() << std::endl;
   for (int32_t v = 0; v < line.size(); v++) {
-    int ntotal = countContext(line, v);
-    if (ntotal == 0)
-        continue;
+    //int ntotal = countContext(line, v);
+    //if (ntotal == 0)
+    //    continue;
     for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
       const std::vector<int32_t> inWord = {line[v].wordsID[i]};
       //model.addGLoss(inWord);
@@ -209,12 +209,21 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           else
             a = 2 * args_->ws + 1 - dst;
           //model.addBLoss(a , args_->beta_base, th_->getCell(inWord[0], dst));
+          real theta = th_->getCell(inWord[0], dst);
           real pContext = 0.0;
           for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
             int32_t target = line[c].wordsID[j];
             if (target != inWord[0])
-              model.update(inWord, target, lr, dst, ntotal, pContext);
+              model.update(inWord, target, lr, theta, pContext);
           }
+          real grad_th = lr * pContext / nc;
+          if (theta + grad_th > 1.0) {
+            grad_th = 0.5 * (1.0 - theta);
+          }
+          if (theta + grad_th < 0) {
+            grad_th = -0.5 * theta;
+          }
+          th_->updateCell(inWord[0], dst, theta + grad_th);
           //std::cout << "pContext: " << pContext << std::endl;
           //std::cout << "weight: " << weight << std::endl;
           //std::cout << "pContext: " << inWord[0] << "," << dst << ": " << pContext << " " << nc << std::endl;

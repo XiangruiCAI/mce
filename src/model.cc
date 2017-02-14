@@ -68,39 +68,41 @@ void Model::addBLoss(real a, real b, real theta) {
   loss_ += -log(betaPdf(theta, a, b));
 }
 
-real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t ntotal, int32_t input, real& pContext) {
+real Model::blContext(int32_t target, bool label, real lr, real theta, real& pContext) {
   real score = sigmoid(wo_->dotRow(hidden_, target));
-  real theta = th_->getCell(input, dst);
+//  real theta = th_->getCell(input, dst);
   if (label) {
-    if (score > 0.5)
-      pContext += 1;
+    //if (score > 0.5)
+    //  pContext += 1;
     real alpha = 0.0;
     real grad_th = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
     if (std::abs(gp) < 0.0001) {
       alpha = lr * (1.0 - score);
-      if (1.0 - theta < 0.0001) {
-        grad_th = -0.5 * theta;
-      } else {
-        grad_th = -lr / (1 - theta);
-      }
+      grad_th = 10000 * (score - args_->delta);
+      //if (1.0 - theta < 0.0001) {
+      //  grad_th = -0.5 * theta;
+      //} else {
+      //  grad_th = -lr / (1 - theta);
+      //}
     } else {
       alpha = lr * (theta * (1.0 - score) * score / gp);
-      grad_th = lr * (score - args_->delta) / gp;
+      grad_th = (score - args_->delta) / gp;
     }
     grad_.addRow(*wo_, target, alpha);
     // use stochastic optimization to approximate L2 regularization
     // the 0.01 is decided by the frequency of f_i
     //grad_.add(hidden_, -0.001 * lr / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
-    if (theta + grad_th > 1.0) {
-      grad_th = 0.5 * (1.0 - theta);
-    }
-    if (theta + grad_th < 0) {
-      grad_th = -0.5 * theta;
-    }
-    //std::cout << "updated theta: " << theta + grad_th << std::endl;
-    th_->updateCell(input, dst, theta + grad_th);
+    pContext += grad_th;
+    //if (theta + grad_th > 1.0) {
+    //  grad_th = 0.5 * (1.0 - theta);
+    //}
+    //if (theta + grad_th < 0) {
+    //  grad_th = -0.5 * theta;
+    //}
+    ////std::cout << "updated theta: " << theta + grad_th << std::endl;
+    //th_->updateCell(input, dst, theta + grad_th);
     return -log(gp);
   } else {
     real alpha = lr * (0.0 - score);
@@ -111,14 +113,14 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t dst, int32_t 
   }
 }
 
-real Model::nsContext(int32_t target, real lr, int32_t dst, int32_t ntotal, int32_t input, real& pContext) {
+real Model::nsContext(int32_t target, real lr, real theta, real& pContext) {
   real loss = 0.0;
   grad_.zero();
   for (int32_t n = 0; n <= args_->neg; n++) {
     if (n == 0) {
-      loss += blContext(target, true, lr, dst, ntotal, input, pContext);
+      loss += blContext(target, true, lr, theta, pContext);
     } else {
-      loss += blContext(getNegative(target), false, lr, dst, ntotal, input, pContext);
+      loss += blContext(getNegative(target), false, lr, theta, pContext);
     }
   }
   return loss;
@@ -253,13 +255,13 @@ void Model::dfs(int32_t k, int32_t node, real score,
 // dst: the distance between context feature and current feature
 // ntotal: the total number of context features
 // nc: number of features at dst from current feature
-void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, int32_t dst, int32_t ntotal, real& pContext) {
+void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, real theta, real& pContext) {
   assert(target >= 0);
   assert(target < osz_);
   assert(args_->loss == loss_name::ns);
   if (input.size() == 0) return;
   computeHidden(input, hidden_);
-  loss_ += nsContext(target, lr, dst, ntotal, input[0], pContext);
+  loss_ += nsContext(target, lr, theta, pContext);
   //loss_ += negativeSampling(target, lr);
   nexamples_ += 1;
 
