@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cstdlib>
+#include <ctime>
 
 namespace fasttext {
 
@@ -189,6 +191,7 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
   //std::cout << "length of line: " << line.size() << std::endl;
   for (int32_t v = 0; v < line.size(); v++) {
     //int ntotal = countContext(line, v);
+    //std::cout << "total context features: " << ntotal << std::endl;
     //if (ntotal == 0)
     //    continue;
     for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
@@ -198,10 +201,12 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
       for (int32_t c = 0; c < line.size(); c++) {
         if (std::abs(line[v].time - line[c].time) <= boundary) {
           int32_t nc = line[c].wordsID.size();
+          std::srand((unsigned) std::time(0));
           if (c == v)
             nc -= 1;
           if (nc == 0)
             continue;
+          //std::cout << "context features: " << nc << std::endl;
           int32_t dst = line[c].time - line[v].time + boundary;
           real a = 0.0;
           if (dst <= boundary)
@@ -211,7 +216,10 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           //model.addBLoss(a , args_->beta_base, th_->getCell(inWord[0], dst));
           real theta = th_->getCell(inWord[0], dst);
           real pContext = 0.0;
-          for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
+          // randomly select 50 features
+      //    for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
+          for (int32_t k = 0; k < args_->nrand; k++) {
+            int32_t j = std::rand() % line[c].wordsID.size();
             int32_t target = line[c].wordsID[j];
             if (target != inWord[0])
               model.update(inWord, target, lr, theta, pContext);

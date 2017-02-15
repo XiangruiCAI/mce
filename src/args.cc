@@ -39,6 +39,7 @@ Args::Args() {
   pretrainedVectors = "";
   beta_base = 10;
   delta = 0.2;
+  nrand = 16;
 }
 
 void Args::parseArgs(int argc, char** argv) {
@@ -120,6 +121,8 @@ void Args::parseArgs(int argc, char** argv) {
       beta_base = atof(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-delta") == 0) {
       delta = atof(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-nrand") == 0) {
+      nrand = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-timeUnit") == 0) {
       std::string tmunit(argv[ai + 1]);
       if (tmunit == "day") {
@@ -179,6 +182,7 @@ void Args::printHelp() {
     << "  -beta_base          base beta parameters for initializing theta matrix [" << beta_base << "]\n"
     << "  -delta              small probability for random context [" << delta << "]\n"
     << "  -timeUnit           unit of time scope [" << int(timeUnit) << "]\n"
+    << "  -nrand              number of random selection at each time point [" << int(nrand) << "]\n"
     << "  -verbose            verbosity level [" << verbose << "]\n"
     << "  -pretrainedVectors  pretrained word vectors for supervised learning []"
     << std::endl;
@@ -201,6 +205,7 @@ void Args::save(std::ostream& out) {
   out.write((char*) &(beta_base), sizeof(double));
   out.write((char*) &(delta), sizeof(double));
   out.write((char*) &(timeUnit), sizeof(time_unit));
+  out.write((char*) &(nrand), sizeof(int));
 }
 
 void Args::load(std::istream& in) {
@@ -220,6 +225,7 @@ void Args::load(std::istream& in) {
   in.read((char*) &(beta_base), sizeof(double));
   in.read((char*) &(delta), sizeof(double));
   in.read((char*) &(timeUnit), sizeof(time_unit));
+  in.read((char*) &(nrand), sizeof(int));
 }
 
 }

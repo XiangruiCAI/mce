@@ -49,6 +49,7 @@ class Args {
     std::string pretrainedVectors;
     real beta_base;
     real delta;
+    int nrand;
 
     void parseArgs(int, char**);
     void printHelp();
