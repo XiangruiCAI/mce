@@ -226,10 +226,10 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           }
           real grad_th = lr * pContext / nc;
           if (theta + grad_th > 1.0) {
-            grad_th = 0.5 * (1.0 - theta);
+            grad_th = 0.1 * lr * (1.0 - theta);
           }
           if (theta + grad_th < 0) {
-            grad_th = -0.5 * theta;
+            grad_th = -0.1 * lr * theta;
           }
           th_->updateCell(inWord[0], dst, theta + grad_th);
           //std::cout << "pContext: " << pContext << std::endl;
