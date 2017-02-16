@@ -224,14 +224,18 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
             if (target != inWord[0])
               model.update(inWord, target, lr, theta, pContext);
           }
-          real grad_th = lr * pContext / nc;
-          if (theta + grad_th > 1.0) {
-            grad_th = 0.1 * lr * (1.0 - theta);
-          }
-          if (theta + grad_th < 0) {
-            grad_th = -0.1 * lr * theta;
-          }
-          th_->updateCell(inWord[0], dst, theta + grad_th);
+          //real grad_th = lr * pContext / nc;
+          //if (theta + grad_th > 1.0) {
+          //  grad_th = 0.1 * lr * (1.0 - theta);
+          //}
+          //if (theta + grad_th < 0) {
+          //  grad_th = -0.1 * lr * theta;
+          //}
+          int64_t n = pCtxt_->n_;
+          pCtxt_->data_[inWord[0]*n+dst] += pContext;
+          nCtxt_->data_[inWord[0]*n+dst] += args_->nrand;
+          theta = (a + pCtxt_->data_[inWord[0]*n+dst]) / (a + args_->beta_base + nCtxt_->data_[inWord[0]*n+dst]);
+          th_->updateCell(inWord[0], dst, theta);
           //std::cout << "pContext: " << pContext << std::endl;
           //std::cout << "weight: " << weight << std::endl;
           //std::cout << "pContext: " << inWord[0] << "," << dst << ": " << pContext << " " << nc << std::endl;
@@ -501,6 +505,10 @@ void FastText::train(std::shared_ptr<Args> args) {
   //saveTheta();
   //return;
   //th_->set(1.0);
+  pCtxt_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
+  pCtxt_->zero();
+  nCtxt_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
+  nCtxt_->zero();
 
   start = clock();
   tokenCount = 0;

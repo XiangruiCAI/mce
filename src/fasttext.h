@@ -32,6 +32,8 @@ class FastText {
     std::shared_ptr<Matrix> input_;
     std::shared_ptr<Matrix> output_;
     std::shared_ptr<Matrix> th_;
+    std::shared_ptr<Matrix> pCtxt_;
+    std::shared_ptr<Matrix> nCtxt_;
     std::shared_ptr<Model> model_;
     std::atomic<int64_t> tokenCount;
     clock_t start;
