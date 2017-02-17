@@ -37,6 +37,8 @@ class FastText {
     std::shared_ptr<Model> model_;
     std::atomic<int64_t> tokenCount;
     clock_t start;
+    std::vector<real> beta_a;
+    std::vector<real> beta_b;
     //std::vector<int32_t> nctxt_;
 
   public:
@@ -65,6 +67,7 @@ class FastText {
     void train(std::shared_ptr<Args>);
 
     void loadVectors(std::string);
+    void updateTheta();
 };
 
 }

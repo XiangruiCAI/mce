@@ -208,11 +208,11 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
             continue;
           //std::cout << "context features: " << nc << std::endl;
           int32_t dst = line[c].time - line[v].time + boundary;
-          real a = 0.0;
-          if (dst <= boundary)
-            a = dst + 1;
-          else
-            a = 2 * args_->ws + 1 - dst;
+          //real a = 0.0;
+          //if (dst <= boundary)
+          //  a = dst + 1;
+          //else
+          //  a = 2 * args_->ws + 1 - dst;
           //model.addBLoss(a , args_->beta_base, th_->getCell(inWord[0], dst));
           real theta = th_->getCell(inWord[0], dst);
           real pContext = 0.0;
@@ -234,8 +234,8 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           int64_t n = pCtxt_->n_;
           pCtxt_->data_[inWord[0]*n+dst] += pContext;
           nCtxt_->data_[inWord[0]*n+dst] += args_->nrand;
-          theta = (a + pCtxt_->data_[inWord[0]*n+dst]) / (a + args_->beta_base + nCtxt_->data_[inWord[0]*n+dst]);
-          th_->updateCell(inWord[0], dst, theta);
+          //theta = (beta_a[dst] + pCtxt_->data_[inWord[0]*n+dst]) / (beta_a[dst] + args_->beta_base + nCtxt_->data_[inWord[0]*n+dst]);
+          //th_->updateCell(inWord[0], dst, theta);
           //std::cout << "pContext: " << pContext << std::endl;
           //std::cout << "weight: " << weight << std::endl;
           //std::cout << "pContext: " << inWord[0] << "," << dst << ": " << pContext << " " << nc << std::endl;
@@ -361,6 +361,17 @@ void FastText::printVectors() {
   }
 }
 
+void FastText::updateTheta() {
+  int64_t m = pCtxt_->m_;
+  int64_t n = pCtxt_->n_;
+  for (int64_t i = 0; i < m; i++) {
+    for (int64_t j = 0; j < n; j++) {
+        real theta = (beta_a[j] + pCtxt_->data_[i*n+j]) / (beta_a[j] + args_->beta_base + nCtxt_->data_[i*n+j]);
+        th_->updateCell(i, j, theta);
+    }
+  }
+}
+
 void FastText::trainThread(int32_t threadId) {
   std::ifstream ifs(args_->input);
   // should seek to the beginning of the line
@@ -402,6 +413,9 @@ void FastText::trainThread(int32_t threadId) {
         //    << " ouput l1 norm " << output_->l1() 
         //    << std::endl;
       }
+    }
+    if (tokenCount % ntokens == 0) {
+        updateTheta();
     }
   }
   if (threadId == 0 && args_->verbose > 0) {
@@ -488,14 +502,14 @@ void FastText::train(std::shared_ptr<Args> args) {
   // initialize matrix of theta
   th_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
   //std::cout << "shape of theta: " << dict_->nwords() << " " << args_->ws * 2 + 1 << std::endl;
-  std::vector<real> beta_a;
-  std::vector<real> beta_b;
+  //std::vector<real> beta_a;
+  //std::vector<real> beta_b;
   int i = 0;
   for (i = 0; i < args_->ws; i++) {
-    beta_a.push_back(i + 1);
+    beta_a.push_back(150 + i * 10);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(i + 1);
+  beta_a.push_back(150 + i * 10);
   beta_b.push_back(args_->beta_base);
   for (i = args_->ws - 1; i >= 0; i--) {
     beta_a.push_back(beta_a[i]);

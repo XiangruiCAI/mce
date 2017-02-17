@@ -72,8 +72,7 @@ real Model::blContext(int32_t target, bool label, real lr, real theta, real& pCo
   real score = sigmoid(wo_->dotRow(hidden_, target));
 //  real theta = th_->getCell(input, dst);
   if (label) {
-    if (score > 0.5)
-      pContext += 1;
+    pContext += score;
     real alpha = 0.0;
     //real grad_th = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
