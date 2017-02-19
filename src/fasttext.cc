@@ -185,7 +185,6 @@ int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
 }
 
 // line is a set of visits for one patient
-// forget the situation input=target
 void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& line) {
   int32_t boundary = args_->ws;
   //std::cout << "length of line: " << line.size() << std::endl;
@@ -216,37 +215,19 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           //model.addBLoss(a , args_->beta_base, th_->getCell(inWord[0], dst));
           real theta = th_->getCell(inWord[0], dst);
           real pContext = 0.0;
-          // randomly select 50 features
+          // randomly select features
       //    for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
           for (int32_t k = 0; k < args_->nrand; k++) {
             int32_t j = std::rand() % line[c].wordsID.size();
             int32_t target = line[c].wordsID[j];
-            if (target != inWord[0])
-              model.update(inWord, target, lr, theta, pContext);
+            model.update(inWord, target, lr, theta, pContext);
           }
-          //real grad_th = lr * pContext / nc;
-          //if (theta + grad_th > 1.0) {
-          //  grad_th = 0.1 * lr * (1.0 - theta);
-          //}
-          //if (theta + grad_th < 0) {
-          //  grad_th = -0.1 * lr * theta;
-          //}
           int64_t n = pCtxt_->n_;
           pCtxt_->data_[inWord[0]*n+dst] += pContext;
           nCtxt_->data_[inWord[0]*n+dst] += args_->nrand;
-          //theta = (beta_a[dst] + pCtxt_->data_[inWord[0]*n+dst]) / (beta_a[dst] + args_->beta_base + nCtxt_->data_[inWord[0]*n+dst]);
-          //th_->updateCell(inWord[0], dst, theta);
-          //std::cout << "pContext: " << pContext << std::endl;
-          //std::cout << "weight: " << weight << std::endl;
-          //std::cout << "pContext: " << inWord[0] << "," << dst << ": " << pContext << " " << nc << std::endl;
-          //real theta = th_->getCell(inWord[0], dst);
-          //theta = theta + 0.5 * ((pContext / nc) - theta);
-          //th_->updateCell(inWord[0], dst, pContext / nc);
-          //th_->updateCell(inWord[0], dst, 1.0);
         }
       }
     }
-    //std::cout << "finish " << v << "th visit" << std::endl; 
   }
 }
 
@@ -414,7 +395,7 @@ void FastText::trainThread(int32_t threadId) {
         //    << std::endl;
       }
     }
-    if (tokenCount % ntokens == 0) {
+    if (tokenCount % (ntokens / args_->thread * (threadId+1)) == 0) {
         updateTheta();
     }
   }
@@ -488,7 +469,6 @@ void FastText::train(std::shared_ptr<Args> args) {
     //input_->uniform(1.0 / args_->dim);
     // initialize input with a standard gaussian distribution
     input_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
-    //input_->mulVarNormal();
     input_->uniform(1.0 / args_->dim);
   }
 
@@ -501,15 +481,14 @@ void FastText::train(std::shared_ptr<Args> args) {
 
   // initialize matrix of theta
   th_ = std::make_shared<Matrix>(dict_->nwords(), args_->ws * 2 + 1);
-  //std::cout << "shape of theta: " << dict_->nwords() << " " << args_->ws * 2 + 1 << std::endl;
   //std::vector<real> beta_a;
   //std::vector<real> beta_b;
   int i = 0;
   for (i = 0; i < args_->ws; i++) {
-    beta_a.push_back(150 + i * 10);
+    beta_a.push_back(50 + i * 10);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(150 + i * 10);
+  beta_a.push_back(50 + i * 10);
   beta_b.push_back(args_->beta_base);
   for (i = args_->ws - 1; i >= 0; i--) {
     beta_a.push_back(beta_a[i]);
