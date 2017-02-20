@@ -71,7 +71,7 @@ void Model::addBLoss(real a, real b, real theta) {
 real Model::blContext(int32_t target, bool label, real lr, real theta, real& pContext) {
   real score = sigmoid(wo_->dotRow(hidden_, target));
   if (label) {
-    pContext += score;
+    pContext += score / (score + args_->delta);
     real alpha = 0.0;
     //real grad_th = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;

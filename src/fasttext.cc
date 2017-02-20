@@ -217,14 +217,19 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
           real pContext = 0.0;
           // randomly select features
       //    for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
-          for (int32_t k = 0; k < args_->nrand; k++) {
+          // subsample current visit
+          int32_t n_feature = args_->nrand;
+          if (c == v) {
+            n_feature = 1;
+          }
+          for (int32_t k = 0; k < n_feature; k++) {
             int32_t j = std::rand() % line[c].wordsID.size();
             int32_t target = line[c].wordsID[j];
             model.update(inWord, target, lr, theta, pContext);
           }
           int64_t n = pCtxt_->n_;
           pCtxt_->data_[inWord[0]*n+dst] += pContext;
-          nCtxt_->data_[inWord[0]*n+dst] += args_->nrand;
+          nCtxt_->data_[inWord[0]*n+dst] += n_feature;
         }
       }
     }
@@ -485,10 +490,10 @@ void FastText::train(std::shared_ptr<Args> args) {
   //std::vector<real> beta_b;
   int i = 0;
   for (i = 0; i < args_->ws; i++) {
-    beta_a.push_back(50 + i * 10);
+    beta_a.push_back(40 + i * 20);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(50 + i * 10);
+  beta_a.push_back(40 + i * 20);
   beta_b.push_back(args_->beta_base);
   for (i = args_->ws - 1; i >= 0; i--) {
     beta_a.push_back(beta_a[i]);
