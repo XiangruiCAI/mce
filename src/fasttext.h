@@ -39,7 +39,7 @@ class FastText {
     clock_t start;
     std::vector<real> beta_a;
     std::vector<real> beta_b;
-    //std::vector<int32_t> nctxt_;
+    int32_t ws;
 
   public:
     void getVector(Vector&, const std::string&);
@@ -68,6 +68,7 @@ class FastText {
 
     void loadVectors(std::string);
     void updateTheta();
+    int32_t get_th_idx(int32_t);
 };
 
 }
