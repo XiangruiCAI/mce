@@ -273,7 +273,7 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
         int64_t n = pCtxt_->n_;
         pCtxt_->data_[inWord[0]*n+thidx] += pContext;
         nCtxt_->data_[inWord[0]*n+thidx] += num;
-        th_->updateCell(inWord[0], thidx, pCtxt_->data_[inWord[0]*n+thidx] / nCtxt_->data_[inWord[0]*n+thidx]);
+        th_->updateCell(inWord[0], thidx, (beta_a[thidx] + pCtxt_->data_[inWord[0]*n+thidx]) / (beta_a[thidx] + beta_b[thidx] + nCtxt_->data_[inWord[0]*n+thidx]));
       }
     }
   }
@@ -533,6 +533,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   } else {
     ws = 4;
   }
+  std::cout << "ws: " << ws << std::endl;
   th_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
   //std::vector<real> beta_a;
   //std::vector<real> beta_b;
