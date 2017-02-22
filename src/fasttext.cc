@@ -225,6 +225,7 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
         real theta = th_->getCell(inWord[0], thidx);
         std::srand((unsigned) std::time(0));
         real pContext = 0.0;
+        //int32_t a = std::abs(ws - thidx) + 1;
         for (int32_t k = 0; k < args_->nrand; k++) {
           int32_t j = std::rand() % line[c].wordsID.size();
         //for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
@@ -234,7 +235,8 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
         }
         int64_t n = pCtxt_->n_;
         pCtxt_->data_[inWord[0]*n+thidx] += pContext;
-        nCtxt_->data_[inWord[0]*n+thidx] += line[c].wordsID.size(); //args_->nrand;
+        nCtxt_->data_[inWord[0]*n+thidx] += args_->nrand;
+        th_->updateCell(inWord[0], thidx, pCtxt_->data_[inWord[0]*n+thidx] / nCtxt_->data_[inWord[0]*n+thidx]);
       }
     }
   }
@@ -404,9 +406,9 @@ void FastText::trainThread(int32_t threadId) {
         //    << std::endl;
       }
     }
-    if (tokenCount % (ntokens / args_->thread * (threadId+1)) == 0) {
-        updateTheta();
-    }
+    //if (tokenCount % (ntokens / args_->thread * (threadId+1)) == 0) {
+    //    updateTheta();
+    //}
   }
   if (threadId == 0 && args_->verbose > 0) {
     printInfo(1.0, model.getLoss());
@@ -496,10 +498,10 @@ void FastText::train(std::shared_ptr<Args> args) {
   int i = 0;
   // beta_base = 100
   for (i = 0; i < ws; i++) {
-    beta_a.push_back(60 + i * 20);
+    beta_a.push_back(60 + i * 30);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(60 + i * 20);
+  beta_a.push_back(60 + i * 30);
   beta_b.push_back(args_->beta_base);
   for (i = ws - 1; i >= 0; i--) {
     beta_a.push_back(beta_a[i]);

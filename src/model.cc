@@ -76,7 +76,7 @@ real Model::blContext(int32_t target, bool label, real lr, real theta, real& pCo
     //real grad_th = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
     if (std::abs(gp) < 0.00001) {
-      alpha = lr * (1.0 - score);
+      alpha = lr * 100000 * theta * score * (1.0 - score);
     } else {
       alpha = lr * (theta * (1.0 - score) * score / gp);
     }
