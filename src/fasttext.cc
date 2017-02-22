@@ -184,7 +184,7 @@ int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
   return ntotal - 1;
 }
 
-int32_t FastText::get_th_idx(int32_t dst) {
+int32_t FastText::get_th_idx_week(int32_t dst) {
   int32_t thidx = 0;
   if (dst < -26) {
       thidx = 0;
@@ -208,6 +208,34 @@ int32_t FastText::get_th_idx(int32_t dst) {
   return thidx;
 }
 
+int32_t FastText::get_th_idx_day(int32_t dst) {
+  int32_t thidx = 0;
+  if (dst < -365) {
+      thidx = 0;
+  } else if (dst >= -365 && dst < -30) {
+      thidx = 1;
+  } else if (dst >=-30 && dst < -7) {
+      thidx = 2;
+  } else if (dst >=-7 && dst < -1) {
+      thidx = 3;
+  } else if (dst == -1) {
+      thidx = 4;
+  } else if (dst == 0) {
+      thidx = 5;
+  } else if (dst == 1) {
+      thidx = 6;
+  } else if (dst > 1 && dst <= 7) {
+      thidx = 7;
+  } else if (dst > 7 && dst <= 30) {
+      thidx = 8;
+  } else if (dst > 30 && dst <= 365) {
+      thidx = 9;
+  } else {
+      thidx = 10;
+  }
+  return thidx;
+}
+
 // line is a set of visits for one patient
 void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& line) {
   for (int32_t v = 0; v < line.size(); v++) {
@@ -219,23 +247,32 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
       if (c == v && line[c].wordsID.size() == 1)
         continue;
       int32_t dst = line[c].time - line[v].time;
-      int32_t thidx = get_th_idx(dst);
+      int32_t thidx = -1;
+      if (args_->timeUnit == time_unit::day) {
+        thidx = get_th_idx_day(dst);
+      } else {
+        thidx = get_th_idx_week(dst);
+      }
       for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
         const std::vector<int32_t> inWord = {line[v].wordsID[i]};
         real theta = th_->getCell(inWord[0], thidx);
         std::srand((unsigned) std::time(0));
         real pContext = 0.0;
         //int32_t a = std::abs(ws - thidx) + 1;
+        int32_t num = 0;
         for (int32_t k = 0; k < args_->nrand; k++) {
           int32_t j = std::rand() % line[c].wordsID.size();
         //for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
           //std::cout << "j: " << j << std::endl;
           int32_t target = line[c].wordsID[j];
-          model.update(inWord, target, lr, theta, pContext);
+          if (target != inWord[0]) {
+            num++;
+            model.update(inWord, target, lr, theta, pContext);
+          }
         }
         int64_t n = pCtxt_->n_;
         pCtxt_->data_[inWord[0]*n+thidx] += pContext;
-        nCtxt_->data_[inWord[0]*n+thidx] += args_->nrand;
+        nCtxt_->data_[inWord[0]*n+thidx] += num;
         th_->updateCell(inWord[0], thidx, pCtxt_->data_[inWord[0]*n+thidx] / nCtxt_->data_[inWord[0]*n+thidx]);
       }
     }
@@ -491,7 +528,11 @@ void FastText::train(std::shared_ptr<Args> args) {
   output_->zero();
 
   // initialize matrix of theta
-  ws = 4;
+  if (args_->timeUnit == time_unit::day) {
+    ws = 5;
+  } else {
+    ws = 4;
+  }
   th_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
   //std::vector<real> beta_a;
   //std::vector<real> beta_b;

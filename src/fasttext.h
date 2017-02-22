@@ -68,7 +68,8 @@ class FastText {
 
     void loadVectors(std::string);
     void updateTheta();
-    int32_t get_th_idx(int32_t);
+    int32_t get_th_idx_week(int32_t);
+    int32_t get_th_idx_day(int32_t);
 };
 
 }
