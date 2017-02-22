@@ -73,6 +73,24 @@ void FastText::saveTheta() {
   ofs.close();
 }
 
+void FastText::saveNum() { 
+  std::ofstream ofs(args_->output + ".num");
+  if (!ofs.is_open()) {
+    std::cout << "Error opening file for saving vectors." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  ofs << dict_->nwords() << " " << ws * 2 + 1 << std::endl;
+  Vector vec(ws * 2 + 1);
+  for (int32_t i = 0; i < dict_->nwords(); i++) {
+    std::string word = dict_->getWord(i);
+    //int32_t count = dict_->getWordCount(i);
+    vec.zero();
+    vec.addRow(*nCtxt_, i);
+    ofs << word << " " << vec << std::endl;
+  }
+  ofs.close();
+}
+
 void FastText::saveModel() {
   std::ofstream ofs(args_->output + ".bin", std::ofstream::binary);
   if (!ofs.is_open()) {
@@ -535,23 +553,19 @@ void FastText::train(std::shared_ptr<Args> args) {
   }
   std::cout << "ws: " << ws << std::endl;
   th_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
-  //std::vector<real> beta_a;
-  //std::vector<real> beta_b;
   int i = 0;
   // beta_base = 100
   for (i = 0; i < ws; i++) {
-    beta_a.push_back(60 + i * 30);
+    beta_a.push_back(40 + i * 20);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(60 + i * 30);
+  beta_a.push_back(40 + i * 20);
   beta_b.push_back(args_->beta_base);
   for (i = ws - 1; i >= 0; i--) {
     beta_a.push_back(beta_a[i]);
     beta_b.push_back(beta_b[i]);
   }
   th_->beta(beta_a, beta_b);
-  //saveTheta();
-  //return;
   //th_->set(1.0);
   pCtxt_ = std::make_shared<Matrix>(dict_->nwords(), ws * 2 + 1);
   pCtxt_->zero();
@@ -573,6 +587,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   if (args_->model != model_name::sup) {
     saveVectors();
     saveTheta();
+    saveNum();
   }
 }
 

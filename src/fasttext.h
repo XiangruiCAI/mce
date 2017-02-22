@@ -46,6 +46,7 @@ class FastText {
     void getVector(Vector&, const int32_t);
     void saveVectors();
     void saveTheta();
+    void saveNum();
     void saveModel();
     void loadModel(const std::string&);
     void loadModel(std::istream&);
