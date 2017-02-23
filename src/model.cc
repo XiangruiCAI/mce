@@ -73,7 +73,6 @@ real Model::blContext(int32_t target, bool label, real lr, real theta, real& pCo
   if (label) {
     pContext += score / (score + args_->delta);
     real alpha = 0.0;
-    //real grad_th = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
     if (std::abs(gp) < 0.00001) {
       alpha = lr * 100000 * theta * score * (1.0 - score);
@@ -89,17 +88,22 @@ real Model::blContext(int32_t target, bool label, real lr, real theta, real& pCo
   } else {
     //real alpha = lr * (0.0 - score);
     real alpha = 0.0;
-    real t = 0.8;
-    real gp = t * (1 - score) + (1 - t) * args_->delta;
-    if (std::abs(gp) < 0.00001) {
+    //real t = 0.8;
+    //real gp = t * (1 - score) + (1 - t) * args_->delta;
+    //if (std::abs(gp) < 0.00001) {
+    //  alpha = -lr * 100000 * theta * score * (1.0 - score);
+    //} else {
+    //  alpha = -lr * (theta * (1.0 - score) * score / gp);
+    //}
+    real gp = theta * score + (1 - theta) * args_->delta;
+    if (std::abs(1 - gp) < 0.00001) {
       alpha = -lr * 100000 * theta * score * (1.0 - score);
     } else {
-      alpha = -lr * (theta * (1.0 - score) * score / gp);
+      alpha = -lr * (theta * score * (1.0 - score) / (1 - gp));
     }
     grad_.addRow(*wo_, target, alpha);
-    //grad_.add(hidden_, -0.001 * lr / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
-    return -log(1.0 - score);
+    return -log(1 - gp);
   }
 }
 
