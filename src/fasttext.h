@@ -32,7 +32,6 @@ class FastText {
     std::shared_ptr<Matrix> input_;
     std::shared_ptr<Matrix> output_;
     std::shared_ptr<Matrix> th_;
-    std::shared_ptr<Matrix> pCtxt_;
     std::shared_ptr<Matrix> nCtxt_;
     std::shared_ptr<Model> model_;
     std::atomic<int64_t> tokenCount;
@@ -57,7 +56,6 @@ class FastText {
     void cbow(Model&, real, const std::vector<int32_t>&);
     void skipgram(Model&, real, const std::vector<int32_t>&);
     void sgContext(Model&, real, const std::vector<word_time>&);
-    int32_t countContext(const std::vector<word_time>&, int32_t);
     void test(std::istream&, int32_t);
     void predict(std::istream&, int32_t, bool);
     void predict(std::istream&, int32_t, std::vector<std::pair<real,std::string>>&) const;
@@ -68,9 +66,10 @@ class FastText {
     void train(std::shared_ptr<Args>);
 
     void loadVectors(std::string);
-    void updateTheta();
     int32_t get_th_idx_week(int32_t);
     int32_t get_th_idx_day(int32_t);
+    void getPairCount(const std::vector<word_time>&);
+    void prepare();
 };
 
 }

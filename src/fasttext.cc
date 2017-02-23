@@ -125,7 +125,7 @@ void FastText::loadModel(std::istream& in) {
   input_->load(in);
   output_->load(in);
   th_->load(in);
-  model_ = std::make_shared<Model>(input_, output_, th_, args_, 0);
+  model_ = std::make_shared<Model>(input_, output_, th_, nCtxt_, args_, 0);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -173,33 +173,6 @@ void FastText::cbow(Model& model, real lr,
     }
     model.update(bow, line[w], lr);
   }
-}
-
-// compute the number of context for each feature in the line
-// count #context by distances
-int32_t FastText::countContext(const std::vector<word_time>& line, int32_t n){
-  int32_t boundary = args_->ws;
-  int32_t ntotal = 0;
-  //std::vector<int32_t>().swap(nctxt_); 
-  for (int32_t v = 0; v < line.size(); v++) {
-    //if (line[v].wordsID.size() == 0)
-    //  continue;
-    if (std::abs(line[v].time - line[n].time) <= boundary) {
-      //if (v != n) {
-        ntotal += line[v].wordsID.size();
-        //nctxt_.push_back(line[v].wordsID.size());
-      //}
-      //else {
-        //if (line[v].wordsID.size() == 1)
-        //  continue;
-        //ntotal += line[v].wordsID.size() - 1;
-        //nctxt_.push_back(line[v].wordsID.size() - 1);
-      //}
-    } 
-    if (line[v].time - line[n].time > boundary)
-        break;
-  }
-  return ntotal - 1;
 }
 
 int32_t FastText::get_th_idx_week(int32_t dst) {
@@ -254,6 +227,41 @@ int32_t FastText::get_th_idx_day(int32_t dst) {
   return thidx;
 }
 
+void FastText::getPairCount(const std::vector<word_time>& line) {
+  for (int32_t v = 0; v < line.size(); v++) {
+    if (line[v].wordsID.size() == 0)
+      continue;
+    for (int32_t c = 0; c < line.size(); c++) {
+      if (line[c].wordsID.size() == 0)
+        continue;
+      if (c == v && line[c].wordsID.size() == 1)
+        continue;
+      int32_t dst = line[c].time - line[v].time;
+      int32_t thidx = -1;
+      if (args_->timeUnit == time_unit::day) {
+        thidx = get_th_idx_day(dst);
+      } else {
+        thidx = get_th_idx_week(dst);
+      }
+      for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
+        const std::vector<int32_t> inWord = {line[v].wordsID[i]};
+        std::srand((unsigned) std::time(0));
+        int32_t num = 0;
+        for (int32_t k = 0; k < args_->nrand; k++) {
+          int32_t j = std::rand() % line[c].wordsID.size();
+          int32_t target = line[c].wordsID[j];
+          if (target != inWord[0]) {
+            num++;
+          }
+        }
+        int64_t n = nCtxt_->n_;
+        nCtxt_->data_[inWord[0]*n+thidx] += num;
+      }
+    }
+  }
+}
+
+
 // line is a set of visits for one patient
 void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& line) {
   for (int32_t v = 0; v < line.size(); v++) {
@@ -275,23 +283,23 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
         const std::vector<int32_t> inWord = {line[v].wordsID[i]};
         real theta = th_->getCell(inWord[0], thidx);
         std::srand((unsigned) std::time(0));
-        real pContext = 0.0;
+        //real pContext = 0.0;
         //int32_t a = std::abs(ws - thidx) + 1;
-        int32_t num = 0;
+        //int32_t num = 0;
         for (int32_t k = 0; k < args_->nrand; k++) {
           int32_t j = std::rand() % line[c].wordsID.size();
         //for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
           //std::cout << "j: " << j << std::endl;
           int32_t target = line[c].wordsID[j];
           if (target != inWord[0]) {
-            num++;
-            model.update(inWord, target, lr, theta, pContext);
+            //num++;
+            model.update(inWord, target, lr, beta_a[thidx], beta_b[thidx], inWord[0], thidx);
           }
         }
-        int64_t n = pCtxt_->n_;
-        pCtxt_->data_[inWord[0]*n+thidx] += pContext;
-        nCtxt_->data_[inWord[0]*n+thidx] += num;
-        th_->updateCell(inWord[0], thidx, (beta_a[thidx] + pCtxt_->data_[inWord[0]*n+thidx]) / (beta_a[thidx] + beta_b[thidx] + nCtxt_->data_[inWord[0]*n+thidx]));
+        //int64_t n = pCtxt_->n_;
+        //pCtxt_->data_[inWord[0]*n+thidx] += pContext;
+        //nCtxt_->data_[inWord[0]*n+thidx] += num;
+        //th_->updateCell(inWord[0], thidx, (beta_a[thidx] + pCtxt_->data_[inWord[0]*n+thidx]) / (beta_a[thidx] + beta_b[thidx] + nCtxt_->data_[inWord[0]*n+thidx]));
       }
     }
   }
@@ -408,24 +416,13 @@ void FastText::printVectors() {
   }
 }
 
-void FastText::updateTheta() {
-  int64_t m = pCtxt_->m_;
-  int64_t n = pCtxt_->n_;
-  for (int64_t i = 0; i < m; i++) {
-    for (int64_t j = 0; j < n; j++) {
-        real theta = (beta_a[j] + pCtxt_->data_[i*n+j]) / (beta_a[j] + args_->beta_base + nCtxt_->data_[i*n+j]);
-        th_->updateCell(i, j, theta);
-    }
-  }
-}
-
 void FastText::trainThread(int32_t threadId) {
   std::ifstream ifs(args_->input);
   // should seek to the beginning of the line
   //utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
   utils::seekToBOS(ifs, threadId * utils::size(ifs) / args_->thread);
 
-  Model model(input_, output_, th_, args_, threadId);
+  Model model(input_, output_, th_, nCtxt_, args_, threadId);
   if (args_->model == model_name::sup) {
     model.setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -512,6 +509,20 @@ void FastText::loadVectors(std::string filename) {
   }
 }
 
+void FastText::prepare() {
+  std::ifstream ifs(args_->input);
+  const int64_t ntokens = dict_->ntokens();
+  int64_t tokenCount = 0;
+  std::vector<word_time> line;
+  std::vector<int32_t> labels;
+  std::minstd_rand rng(0);
+  while (tokenCount < ntokens) {
+    tokenCount += dict_->getLineContext(ifs, line, labels, rng);
+    getPairCount(line);
+  }
+  ifs.close();
+}
+
 void FastText::train(std::shared_ptr<Args> args) {
   args_ = args;
   dict_ = std::make_shared<Dictionary>(args_);
@@ -556,10 +567,10 @@ void FastText::train(std::shared_ptr<Args> args) {
   int i = 0;
   // beta_base = 100
   for (i = 0; i < ws; i++) {
-    beta_a.push_back(40 + i * 20);
+    beta_a.push_back(20 + i * 10);
     beta_b.push_back(args_->beta_base);
   }
-  beta_a.push_back(40 + i * 20);
+  beta_a.push_back(20 + i * 10);
   beta_b.push_back(args_->beta_base);
   for (i = ws - 1; i >= 0; i--) {
     beta_a.push_back(beta_a[i]);
@@ -567,10 +578,9 @@ void FastText::train(std::shared_ptr<Args> args) {
   }
   th_->beta(beta_a, beta_b);
   //th_->set(1.0);
-  pCtxt_ = std::make_shared<Matrix>(dict_->nwords(), ws * 2 + 1);
-  pCtxt_->zero();
   nCtxt_ = std::make_shared<Matrix>(dict_->nwords(), ws * 2 + 1);
   nCtxt_->zero();
+  prepare();
 
   start = clock();
   tokenCount = 0;
@@ -581,7 +591,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   for (auto it = threads.begin(); it != threads.end(); ++it) {
     it->join();
   }
-  model_ = std::make_shared<Model>(input_, output_, th_, args_, 0);
+  model_ = std::make_shared<Model>(input_, output_, th_, nCtxt_, args_, 0);
 
   saveModel();
   if (args_->model != model_name::sup) {

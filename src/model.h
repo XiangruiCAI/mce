@@ -41,6 +41,7 @@ class Model {
     std::shared_ptr<Matrix> wi_;
     std::shared_ptr<Matrix> wo_;
     std::shared_ptr<Matrix> th_;
+    std::shared_ptr<Matrix> nCtxt_;
     std::shared_ptr<Args> args_;
     Vector hidden_;
     Vector output_;
@@ -72,13 +73,13 @@ class Model {
 
   public:
     Model(std::shared_ptr<Matrix>, std::shared_ptr<Matrix>, std::shared_ptr<Matrix>,
-          std::shared_ptr<Args>, int32_t);
+          std::shared_ptr<Matrix>, std::shared_ptr<Args>, int32_t);
     ~Model();
 
     real binaryLogistic(int32_t, bool, real);
     real negativeSampling(int32_t, real);
-    real nsContext(int32_t, real, real, real&);
-    real blContext(int32_t, bool, real, real, real&);
+    real nsContext(int32_t, real, int32_t, int32_t, int32_t, int32_t);
+    real blContext(int32_t, bool, real, int32_t, int32_t, int32_t, int32_t); 
     real hierarchicalSoftmax(int32_t, real);
     real softmax(int32_t, real);
 
@@ -93,7 +94,7 @@ class Model {
     void findKBest(int32_t, std::vector<std::pair<real, int32_t>>&,
                    Vector&, Vector&) const;
     void update(const std::vector<int32_t>&, int32_t, real);
-    void update(const std::vector<int32_t>&, int32_t, real, real, real&);
+    void update(const std::vector<int32_t>&, int32_t, real, int32_t, int32_t, int32_t, int32_t);
     void computeHidden(const std::vector<int32_t>&, Vector&) const;
     void computeOutputSoftmax(Vector&, Vector&) const;
     void computeOutputSoftmax();

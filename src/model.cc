@@ -24,6 +24,7 @@ namespace fasttext {
 Model::Model(std::shared_ptr<Matrix> wi,
              std::shared_ptr<Matrix> wo,
              std::shared_ptr<Matrix> th,
+             std::shared_ptr<Matrix> nCtxt,
              std::shared_ptr<Args> args,
              int32_t seed)
   : hidden_(args->dim), output_(wo->m_), grad_(args->dim), rng(seed)
@@ -31,6 +32,7 @@ Model::Model(std::shared_ptr<Matrix> wi,
   wi_ = wi;
   wo_ = wo;
   th_ = th;
+  nCtxt_ = nCtxt;
   args_ = args;
   isz_ = wi->m_;
   osz_ = wo->m_;
@@ -68,10 +70,11 @@ void Model::addBLoss(real a, real b, real theta) {
   loss_ += -log(betaPdf(theta, a, b));
 }
 
-real Model::blContext(int32_t target, bool label, real lr, real theta, real& pContext) {
+real Model::blContext(int32_t target, bool label, real lr, int32_t a, int32_t b, int32_t fid, int32_t dst) {
   real score = sigmoid(wo_->dotRow(hidden_, target));
+  real theta = th_->getCell(fid, dst);
   if (label) {
-    pContext += score / (score + args_->delta);
+    real th = score / (score + args_->delta);
     real alpha = 0.0;
     real gp = theta * score + (1 - theta) * args_->delta;
     if (std::abs(gp) < 0.00001) {
@@ -80,10 +83,12 @@ real Model::blContext(int32_t target, bool label, real lr, real theta, real& pCo
       alpha = lr * (theta * (1.0 - score) * score / gp);
     }
     grad_.addRow(*wo_, target, alpha);
-    // use stochastic optimization to approximate L2 regularization
-    // the 0.01 is decided by the frequency of f_i
-    //grad_.add(hidden_, -0.001 * lr / (ntotal * (args_->neg + 1)));
     wo_->addRow(hidden_, target, alpha);
+    real decay = 0.999;
+    th = theta * decay + th * (1 - decay);
+    real count = nCtxt_->getCell(fid, dst);
+    th_->updateCell(fid, dst, (th * count + a) / (count + a + b));
+
     return -log(gp);
   } else {
     //real alpha = lr * (0.0 - score);
@@ -107,14 +112,14 @@ real Model::blContext(int32_t target, bool label, real lr, real theta, real& pCo
   }
 }
 
-real Model::nsContext(int32_t target, real lr, real theta, real& pContext) {
+real Model::nsContext(int32_t target, real lr, int32_t a, int32_t b, int32_t fid, int32_t dst) {
   real loss = 0.0;
   grad_.zero();
   for (int32_t n = 0; n <= args_->neg; n++) {
     if (n == 0) {
-      loss += blContext(target, true, lr, theta, pContext);
+      loss += blContext(target, true, lr, a, b, fid, dst);
     } else {
-      loss += blContext(getNegative(target), false, lr, theta, pContext);
+      loss += blContext(getNegative(target), false, lr, a, b, fid, dst);
     }
   }
   return loss;
@@ -249,13 +254,13 @@ void Model::dfs(int32_t k, int32_t node, real score,
 // dst: the distance between context feature and current feature
 // ntotal: the total number of context features
 // nc: number of features at dst from current feature
-void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, real theta, real& pContext) {
+void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, int32_t a, int32_t b, int32_t fid, int32_t dst) {
   assert(target >= 0);
   assert(target < osz_);
   assert(args_->loss == loss_name::ns);
   if (input.size() == 0) return;
   computeHidden(input, hidden_);
-  loss_ += nsContext(target, lr, theta, pContext);
+  loss_ += nsContext(target, lr, a, b, fid, dst);
   //loss_ += negativeSampling(target, lr);
   nexamples_ += 1;
 
