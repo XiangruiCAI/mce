@@ -5,3 +5,12 @@
 data
 fasttext
 result
+*.tar.gz
+*.tgz
+*.vec
+*.theta
+*.bin
+*.txt
+*.num
+*.out
+*.marshal
