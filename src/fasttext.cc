@@ -11,14 +11,14 @@
 
 #include <math.h>
 
-#include <iostream>
-#include <iomanip>
-#include <thread>
-#include <string>
-#include <vector>
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <vector>
 
 namespace fasttext {
 
@@ -48,7 +48,7 @@ void FastText::saveVectors() {
   Vector vec(args_->dim);
   for (int32_t i = 0; i < dict_->nwords(); i++) {
     std::string word = dict_->getWord(i);
-    //getVector(vec, word);
+    // getVector(vec, word);
     getVector(vec, i);
     ofs << word << " " << vec << std::endl;
   }
@@ -65,7 +65,7 @@ void FastText::saveTheta() {
   Vector vec(ws * 2 + 1);
   for (int32_t i = 0; i < dict_->nwords(); i++) {
     std::string word = dict_->getWord(i);
-    //int32_t count = dict_->getWordCount(i);
+    // int32_t count = dict_->getWordCount(i);
     vec.zero();
     vec.addRow(*th_, i);
     ofs << word << " " << vec << std::endl;
@@ -73,7 +73,7 @@ void FastText::saveTheta() {
   ofs.close();
 }
 
-void FastText::saveNum() { 
+void FastText::saveNum() {
   std::ofstream ofs(args_->output + ".num");
   if (!ofs.is_open()) {
     std::cout << "Error opening file for saving vectors." << std::endl;
@@ -83,7 +83,7 @@ void FastText::saveNum() {
   Vector vec(ws * 2 + 1);
   for (int32_t i = 0; i < dict_->nwords(); i++) {
     std::string word = dict_->getWord(i);
-    //int32_t count = dict_->getWordCount(i);
+    // int32_t count = dict_->getWordCount(i);
     vec.zero();
     vec.addRow(*nCtxt_, i);
     ofs << word << " " << vec << std::endl;
@@ -158,8 +158,7 @@ void FastText::supervised(Model& model, real lr,
   model.update(line, labels[i], lr);
 }
 
-void FastText::cbow(Model& model, real lr,
-                    const std::vector<int32_t>& line) {
+void FastText::cbow(Model& model, real lr, const std::vector<int32_t>& line) {
   std::vector<int32_t> bow;
   std::uniform_int_distribution<> uniform(1, args_->ws);
   for (int32_t w = 0; w < line.size(); w++) {
@@ -178,23 +177,23 @@ void FastText::cbow(Model& model, real lr,
 int32_t FastText::get_th_idx_week(int32_t dst) {
   int32_t thidx = 0;
   if (dst < -26) {
-      thidx = 0;
+    thidx = 0;
   } else if (dst >= -26 && dst < -4) {
-      thidx = 1;
-  } else if (dst >=-4 && dst < -1) {
-      thidx = 2;
+    thidx = 1;
+  } else if (dst >= -4 && dst < -1) {
+    thidx = 2;
   } else if (dst == -1) {
-      thidx = 3;
+    thidx = 3;
   } else if (dst == 0) {
-      thidx = 4;
+    thidx = 4;
   } else if (dst == 1) {
-      thidx = 5;
+    thidx = 5;
   } else if (dst > 1 && dst <= 4) {
-      thidx = 6;
+    thidx = 6;
   } else if (dst > 4 && dst <= 26) {
-      thidx = 7;
+    thidx = 7;
   } else {
-      thidx = 8;
+    thidx = 8;
   }
   return thidx;
 }
@@ -202,40 +201,41 @@ int32_t FastText::get_th_idx_week(int32_t dst) {
 int32_t FastText::get_th_idx_day(int32_t dst) {
   int32_t thidx = 0;
   if (dst < -365) {
-      thidx = 0;
+    thidx = 0;
   } else if (dst >= -365 && dst < -30) {
-      thidx = 1;
-  } else if (dst >=-30 && dst < -7) {
-      thidx = 2;
-  } else if (dst >=-7 && dst < -1) {
-      thidx = 3;
+    thidx = 1;
+  } else if (dst >= -30 && dst < -7) {
+    thidx = 2;
+  } else if (dst >= -7 && dst < -1) {
+    thidx = 3;
   } else if (dst == -1) {
-      thidx = 4;
+    thidx = 4;
   } else if (dst == 0) {
-      thidx = 5;
+    thidx = 5;
   } else if (dst == 1) {
-      thidx = 6;
+    thidx = 6;
   } else if (dst > 1 && dst <= 7) {
-      thidx = 7;
+    thidx = 7;
   } else if (dst > 7 && dst <= 30) {
-      thidx = 8;
+    thidx = 8;
   } else if (dst > 30 && dst <= 365) {
-      thidx = 9;
+    thidx = 9;
   } else {
-      thidx = 10;
+    thidx = 10;
   }
   return thidx;
 }
 
+/*
+  Compute the number of contexts for each feature at each context window through
+  an epoch. The numbers are saved in nCtxt_, which will be passed to model.
+*/
 void FastText::getPairCount(const std::vector<word_time>& line) {
   for (int32_t v = 0; v < line.size(); v++) {
-    if (line[v].wordsID.size() == 0)
-      continue;
+    if (line[v].wordsID.size() == 0) continue;
     for (int32_t c = 0; c < line.size(); c++) {
-      if (line[c].wordsID.size() == 0)
-        continue;
-      if (c == v && line[c].wordsID.size() == 1)
-        continue;
+      if (line[c].wordsID.size() == 0) continue;
+      if (c == v && line[c].wordsID.size() == 1) continue;
       int32_t dst = line[c].time - line[v].time;
       int32_t thidx = -1;
       if (args_->timeUnit == time_unit::day) {
@@ -245,7 +245,7 @@ void FastText::getPairCount(const std::vector<word_time>& line) {
       }
       for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
         const std::vector<int32_t> inWord = {line[v].wordsID[i]};
-        std::srand((unsigned) std::time(0));
+        std::srand((unsigned)std::time(0));
         int32_t num = 0;
         for (int32_t k = 0; k < args_->nrand; k++) {
           int32_t j = std::rand() % line[c].wordsID.size();
@@ -255,23 +255,20 @@ void FastText::getPairCount(const std::vector<word_time>& line) {
           }
         }
         int64_t n = nCtxt_->n_;
-        nCtxt_->data_[inWord[0]*n+thidx] += num;
+        nCtxt_->data_[inWord[0] * n + thidx] += num;
       }
     }
   }
 }
 
-
 // line is a set of visits for one patient
-void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& line) {
+void FastText::sgContext(Model& model, real lr,
+                         const std::vector<word_time>& line) {
   for (int32_t v = 0; v < line.size(); v++) {
-    if (line[v].wordsID.size() == 0)
-      continue;
+    if (line[v].wordsID.size() == 0) continue;
     for (int32_t c = 0; c < line.size(); c++) {
-      if (line[c].wordsID.size() == 0)
-        continue;
-      if (c == v && line[c].wordsID.size() == 1)
-        continue;
+      if (line[c].wordsID.size() == 0) continue;
+      if (c == v && line[c].wordsID.size() == 1) continue;
       int32_t dst = line[c].time - line[v].time;
       int32_t thidx = -1;
       if (args_->timeUnit == time_unit::day) {
@@ -282,24 +279,27 @@ void FastText::sgContext(Model& model, real lr, const std::vector<word_time>& li
       for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
         const std::vector<int32_t> inWord = {line[v].wordsID[i]};
         real theta = th_->getCell(inWord[0], thidx);
-        std::srand((unsigned) std::time(0));
-        //real pContext = 0.0;
-        //int32_t a = std::abs(ws - thidx) + 1;
-        //int32_t num = 0;
+        std::srand((unsigned)std::time(0));
+        // real pContext = 0.0;
+        // int32_t a = std::abs(ws - thidx) + 1;
+        // int32_t num = 0;
         for (int32_t k = 0; k < args_->nrand; k++) {
           int32_t j = std::rand() % line[c].wordsID.size();
-        //for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
-          //std::cout << "j: " << j << std::endl;
+          // for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
+          // std::cout << "j: " << j << std::endl;
           int32_t target = line[c].wordsID[j];
           if (target != inWord[0]) {
-            //num++;
-            model.update(inWord, target, lr, beta_a[thidx], beta_b[thidx], inWord[0], thidx);
+            // num++;
+            model.update(inWord, target, lr, beta_a[thidx], beta_b[thidx],
+                         inWord[0], thidx);
           }
         }
-        //int64_t n = pCtxt_->n_;
-        //pCtxt_->data_[inWord[0]*n+thidx] += pContext;
-        //nCtxt_->data_[inWord[0]*n+thidx] += num;
-        //th_->updateCell(inWord[0], thidx, (beta_a[thidx] + pCtxt_->data_[inWord[0]*n+thidx]) / (beta_a[thidx] + beta_b[thidx] + nCtxt_->data_[inWord[0]*n+thidx]));
+        // int64_t n = pCtxt_->n_;
+        // pCtxt_->data_[inWord[0]*n+thidx] += pContext;
+        // nCtxt_->data_[inWord[0]*n+thidx] += num;
+        // th_->updateCell(inWord[0], thidx, (beta_a[thidx] +
+        // pCtxt_->data_[inWord[0]*n+thidx]) / (beta_a[thidx] + beta_b[thidx] +
+        // nCtxt_->data_[inWord[0]*n+thidx]));
       }
     }
   }
@@ -330,8 +330,10 @@ void FastText::test(std::istream& in, int32_t k) {
     if (labels.size() > 0 && line.size() > 0) {
       std::vector<std::pair<real, int32_t>> modelPredictions;
       model_->predict(line, k, modelPredictions);
-      for (auto it = modelPredictions.cbegin(); it != modelPredictions.cend(); it++) {
-        if (std::find(labels.begin(), labels.end(), it->second) != labels.end()) {
+      for (auto it = modelPredictions.cbegin(); it != modelPredictions.cend();
+           it++) {
+        if (std::find(labels.begin(), labels.end(), it->second) !=
+            labels.end()) {
           precision += 1.0;
         }
       }
@@ -345,24 +347,27 @@ void FastText::test(std::istream& in, int32_t k) {
   std::cout << "Number of examples: " << nexamples << std::endl;
 }
 
-void FastText::predict(std::istream& in, int32_t k,
-                       std::vector<std::pair<real,std::string>>& predictions) const {
+void FastText::predict(
+    std::istream& in, int32_t k,
+    std::vector<std::pair<real, std::string>>& predictions) const {
   std::vector<int32_t> words, labels;
   dict_->getLine(in, words, labels, model_->rng);
   dict_->addNgrams(words, args_->wordNgrams);
   if (words.empty()) return;
   Vector hidden(args_->dim);
   Vector output(dict_->nlabels());
-  std::vector<std::pair<real,int32_t>> modelPredictions;
+  std::vector<std::pair<real, int32_t>> modelPredictions;
   model_->predict(words, k, modelPredictions, hidden, output);
   predictions.clear();
-  for (auto it = modelPredictions.cbegin(); it != modelPredictions.cend(); it++) {
-    predictions.push_back(std::make_pair(it->first, dict_->getLabel(it->second)));
+  for (auto it = modelPredictions.cbegin(); it != modelPredictions.cend();
+       it++) {
+    predictions.push_back(
+        std::make_pair(it->first, dict_->getLabel(it->second)));
   }
 }
 
 void FastText::predict(std::istream& in, int32_t k, bool print_prob) {
-  std::vector<std::pair<real,std::string>> predictions;
+  std::vector<std::pair<real, std::string>> predictions;
   while (in.peek() != EOF) {
     predict(in, k, predictions);
     if (predictions.empty()) {
@@ -419,7 +424,7 @@ void FastText::printVectors() {
 void FastText::trainThread(int32_t threadId) {
   std::ifstream ifs(args_->input);
   // should seek to the beginning of the line
-  //utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
+  // utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
   utils::seekToBOS(ifs, threadId * utils::size(ifs) / args_->thread);
 
   Model model(input_, output_, th_, nCtxt_, args_, threadId);
@@ -431,14 +436,14 @@ void FastText::trainThread(int32_t threadId) {
 
   const int64_t ntokens = dict_->ntokens();
   int64_t localTokenCount = 0;
-  //std::vector<int32_t> line, labels;
+  // std::vector<int32_t> line, labels;
   std::vector<word_time> line;
   std::vector<int32_t> labels;
   while (tokenCount < args_->epoch * ntokens) {
     real progress = real(tokenCount) / (args_->epoch * ntokens);
     real lr = args_->lr * (1.0 - progress);
     localTokenCount += dict_->getLineContext(ifs, line, labels, model.rng);
-    //if (args_->model == model_name::sup) {
+    // if (args_->model == model_name::sup) {
     //  dict_->addNgrams(line, args_->wordNgrams);
     //  supervised(model, lr, line, labels);
     //} else if (args_->model == model_name::cbow) {
@@ -452,13 +457,13 @@ void FastText::trainThread(int32_t threadId) {
       localTokenCount = 0;
       if (threadId == 0 && args_->verbose > 1) {
         printInfo(progress, model.getLoss());
-        //std::cout << "input l1 norm: " << input_->l1() 
-        //    << " theta l1 norm " << th_->l1() 
-        //    << " ouput l1 norm " << output_->l1() 
+        // std::cout << "input l1 norm: " << input_->l1()
+        //    << " theta l1 norm " << th_->l1()
+        //    << " ouput l1 norm " << output_->l1()
         //    << std::endl;
       }
     }
-    //if (tokenCount % (ntokens / args_->thread * (threadId+1)) == 0) {
+    // if (tokenCount % (ntokens / args_->thread * (threadId+1)) == 0) {
     //    updateTheta();
     //}
   }
@@ -472,7 +477,7 @@ void FastText::trainThread(int32_t threadId) {
 void FastText::loadVectors(std::string filename) {
   std::ifstream in(filename);
   std::vector<std::string> words;
-  std::shared_ptr<Matrix> mat; // temp. matrix for pretrained vectors
+  std::shared_ptr<Matrix> mat;  // temp. matrix for pretrained vectors
   int64_t n, dim;
   if (!in.is_open()) {
     std::cerr << "Pretrained vectors file cannot be opened!" << std::endl;
@@ -497,7 +502,8 @@ void FastText::loadVectors(std::string filename) {
   in.close();
 
   dict_->threshold(1, 0);
-  input_ = std::make_shared<Matrix>(dict_->nwords()+args_->bucket, args_->dim);
+  input_ =
+      std::make_shared<Matrix>(dict_->nwords() + args_->bucket, args_->dim);
   input_->uniform(1.0 / args_->dim);
 
   for (size_t i = 0; i < n; i++) {
@@ -518,6 +524,7 @@ void FastText::prepare() {
   std::minstd_rand rng(0);
   while (tokenCount < ntokens) {
     tokenCount += dict_->getLineContext(ifs, line, labels, rng);
+    // TODO(xr): check whether it is necessary.
     getPairCount(line);
   }
   ifs.close();
@@ -542,8 +549,9 @@ void FastText::train(std::shared_ptr<Args> args) {
   if (args_->pretrainedVectors.size() != 0) {
     loadVectors(args_->pretrainedVectors);
   } else {
-    //input_ = std::make_shared<Matrix>(dict_->nwords()+args_->bucket, args_->dim);
-    //input_->uniform(1.0 / args_->dim);
+    // input_ = std::make_shared<Matrix>(dict_->nwords()+args_->bucket,
+    // args_->dim);
+    // input_->uniform(1.0 / args_->dim);
     // initialize input with a standard gaussian distribution
     input_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
     input_->uniform(1.0 / args_->dim);
@@ -576,8 +584,9 @@ void FastText::train(std::shared_ptr<Args> args) {
     beta_a.push_back(beta_a[i]);
     beta_b.push_back(beta_b[i]);
   }
-  th_->beta(beta_a, beta_b);
-  //th_->set(1.0);
+  th_->set(0.5);
+  // th_->beta(beta_a, beta_b);
+  // th_->set(1.0);
   nCtxt_ = std::make_shared<Matrix>(dict_->nwords(), ws * 2 + 1);
   nCtxt_->zero();
   prepare();
@@ -600,5 +609,4 @@ void FastText::train(std::shared_ptr<Args> args) {
     saveNum();
   }
 }
-
 }

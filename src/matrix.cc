@@ -63,6 +63,8 @@ void Matrix::uniform(real a) {
   }
 }
 
+// 08-16 XR, remove dependencies on normal and beta distributions
+/*
 void Matrix::mulVarNormal() {
   // n_: dimension
   // m_: num_features
@@ -89,6 +91,7 @@ void Matrix::beta(std::vector<real> a, std::vector<real> b) {
     }
   }
 }
+*/
 
 void Matrix::addRow(const Vector& vec, int64_t i, real a) {
   assert(i >= 0);
@@ -124,9 +127,7 @@ void Matrix::load(std::istream& in) {
   in.read((char*)data_, m_ * n_ * sizeof(real));
 }
 
-real Matrix::getCell(int64_t i, int64_t j) {
-  return data_[i * n_ + j];
-}
+real Matrix::getCell(int64_t i, int64_t j) { return data_[i * n_ + j]; }
 
 void Matrix::updateCell(int64_t i, int64_t j, real value) {
   data_[i * n_ + j] = value;

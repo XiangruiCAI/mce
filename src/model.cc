@@ -17,18 +17,14 @@
 
 #include "utils.h"
 
-#include <boost/math/distributions/beta.hpp>
+//#include <boost/math/distributions/beta.hpp>
 
 namespace fasttext {
 
-Model::Model(std::shared_ptr<Matrix> wi,
-             std::shared_ptr<Matrix> wo,
-             std::shared_ptr<Matrix> th,
-             std::shared_ptr<Matrix> nCtxt,
-             std::shared_ptr<Args> args,
-             int32_t seed)
-  : hidden_(args->dim), output_(wo->m_), grad_(args->dim), rng(seed)
-{
+Model::Model(std::shared_ptr<Matrix> wi, std::shared_ptr<Matrix> wo,
+             std::shared_ptr<Matrix> th, std::shared_ptr<Matrix> nCtxt,
+             std::shared_ptr<Args> args, int32_t seed)
+    : hidden_(args->dim), output_(wo->m_), grad_(args->dim), rng(seed) {
   wi_ = wi;
   wo_ = wo;
   th_ = th;
@@ -61,6 +57,8 @@ real Model::binaryLogistic(int32_t target, bool label, real lr) {
   }
 }
 
+// 08-16 XR, remove dependencies on normal and beta distributions
+/*
 void Model::addGLoss(const std::vector<int32_t>& input) {
   computeHidden(input, hidden_);
   loss_ += -log(mvnPdf(hidden_));
@@ -69,8 +67,10 @@ void Model::addGLoss(const std::vector<int32_t>& input) {
 void Model::addBLoss(real a, real b, real theta) {
   loss_ += -log(betaPdf(theta, a, b));
 }
+*/
 
-real Model::blContext(int32_t target, bool label, real lr, int32_t a, int32_t b, int32_t fid, int32_t dst) {
+real Model::blContext(int32_t target, bool label, real lr, int32_t a, int32_t b,
+                      int32_t fid, int32_t dst) {
   real score = sigmoid(wo_->dotRow(hidden_, target));
   real theta = th_->getCell(fid, dst);
   if (label) {
@@ -91,11 +91,11 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t a, int32_t b,
 
     return -log(gp);
   } else {
-    //real alpha = lr * (0.0 - score);
+    // real alpha = lr * (0.0 - score);
     real alpha = 0.0;
-    //real t = 0.8;
-    //real gp = t * (1 - score) + (1 - t) * args_->delta;
-    //if (std::abs(gp) < 0.00001) {
+    // real t = 0.8;
+    // real gp = t * (1 - score) + (1 - t) * args_->delta;
+    // if (std::abs(gp) < 0.00001) {
     //  alpha = -lr * 100000 * theta * score * (1.0 - score);
     //} else {
     //  alpha = -lr * (theta * (1.0 - score) * score / gp);
@@ -112,7 +112,8 @@ real Model::blContext(int32_t target, bool label, real lr, int32_t a, int32_t b,
   }
 }
 
-real Model::nsContext(int32_t target, real lr, int32_t a, int32_t b, int32_t fid, int32_t dst) {
+real Model::nsContext(int32_t target, real lr, int32_t a, int32_t b,
+                      int32_t fid, int32_t dst) {
   real loss = 0.0;
   grad_.zero();
   for (int32_t n = 0; n <= args_->neg; n++) {
@@ -164,9 +165,7 @@ void Model::computeOutputSoftmax(Vector& hidden, Vector& output) const {
   }
 }
 
-void Model::computeOutputSoftmax() {
-  computeOutputSoftmax(hidden_, output_);
-}
+void Model::computeOutputSoftmax() { computeOutputSoftmax(hidden_, output_); }
 
 real Model::softmax(int32_t target, real lr) {
   grad_.zero();
@@ -180,7 +179,8 @@ real Model::softmax(int32_t target, real lr) {
   return -log(output_[target]);
 }
 
-void Model::computeHidden(const std::vector<int32_t>& input, Vector& hidden) const {
+void Model::computeHidden(const std::vector<int32_t>& input,
+                          Vector& hidden) const {
   assert(hidden.size() == hsz_);
   hidden.zero();
   for (auto it = input.cbegin(); it != input.cend(); ++it) {
@@ -189,14 +189,14 @@ void Model::computeHidden(const std::vector<int32_t>& input, Vector& hidden) con
   hidden.mul(1.0 / input.size());
 }
 
-bool Model::comparePairs(const std::pair<real, int32_t> &l,
-                         const std::pair<real, int32_t> &r) {
+bool Model::comparePairs(const std::pair<real, int32_t>& l,
+                         const std::pair<real, int32_t>& r) {
   return l.first > r.first;
 }
 
 void Model::predict(const std::vector<int32_t>& input, int32_t k,
-                    std::vector<std::pair<real, int32_t>>& heap,
-                    Vector& hidden, Vector& output) const {
+                    std::vector<std::pair<real, int32_t>>& heap, Vector& hidden,
+                    Vector& output) const {
   assert(k > 0);
   heap.reserve(k + 1);
   computeHidden(input, hidden);
@@ -254,14 +254,15 @@ void Model::dfs(int32_t k, int32_t node, real score,
 // dst: the distance between context feature and current feature
 // ntotal: the total number of context features
 // nc: number of features at dst from current feature
-void Model::update(const std::vector<int32_t>& input, int32_t target, real lr, int32_t a, int32_t b, int32_t fid, int32_t dst) {
+void Model::update(const std::vector<int32_t>& input, int32_t target, real lr,
+                   int32_t a, int32_t b, int32_t fid, int32_t dst) {
   assert(target >= 0);
   assert(target < osz_);
   assert(args_->loss == loss_name::ns);
   if (input.size() == 0) return;
   computeHidden(input, hidden_);
   loss_ += nsContext(target, lr, a, b, fid, dst);
-  //loss_ += negativeSampling(target, lr);
+  // loss_ += negativeSampling(target, lr);
   nexamples_ += 1;
 
   if (args_->model == model_name::sup) {
@@ -370,9 +371,7 @@ void Model::buildTree(const std::vector<int64_t>& counts) {
   }
 }
 
-real Model::getLoss() const {
-  return loss_ / nexamples_;
-}
+real Model::getLoss() const { return loss_ / nexamples_; }
 
 void Model::initSigmoid() {
   t_sigmoid = new real[SIGMOID_TABLE_SIZE + 1];
@@ -409,6 +408,8 @@ real Model::sigmoid(real x) const {
   }
 }
 
+// 08-16 XR, remove dependencies of normal and beta distribution
+/*
 // this method only support N(0, Sigma) distribution
 real Model::mvnPdf(const Vector& v) const {
   return std::exp(-0.5 * v.dot(v)) / std::sqrt(pow(2 * M_PI, v.size()));
@@ -418,4 +419,5 @@ real Model::betaPdf(real th, real beta_a, real beta_b) const {
   boost::math::beta_distribution<float> b(beta_a, beta_b);
   return boost::math::pdf(b, th);
 }
+*/
 }

@@ -14,8 +14,6 @@
 #include <istream>
 #include <ostream>
 
-#include "eigenmvn.h"
-#include "beta.h"
 #include "real.h"
 
 namespace fasttext {
@@ -38,9 +36,6 @@ class Matrix {
 
   void zero();
   void uniform(real);
-  // only support (0, E) parameters
-  void mulVarNormal();
-  void beta(std::vector<real> a, std::vector<real> b);
   real dotRow(const Vector&, int64_t);
   void addRow(const Vector&, int64_t, real);
   real lineL2(int64_t);

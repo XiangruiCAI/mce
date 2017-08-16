@@ -8,7 +8,7 @@
 #
 
 CXX = c++
-CXXFLAGS = -g -pthread -std=c++11 -I/home/xiangrui/local/include -I/usr/include/boost
+CXXFLAGS = -g -pthread -std=c++11
 OBJS = args.o dictionary.o matrix.o vector.o model.o utils.o fasttext.o
 INCLUDES = -I.
 
@@ -24,7 +24,7 @@ args.o: src/args.cc src/args.h
 dictionary.o: src/dictionary.cc src/dictionary.h src/args.h
 	$(CXX) $(CXXFLAGS) -c src/dictionary.cc
 
-matrix.o: src/matrix.cc src/matrix.h src/utils.h src/eigenmvn.h src/beta.h
+matrix.o: src/matrix.cc src/matrix.h src/utils.h
 	$(CXX) $(CXXFLAGS) -c src/matrix.cc
 
 vector.o: src/vector.cc src/vector.h src/utils.h
