@@ -63,36 +63,6 @@ void Matrix::uniform(real a) {
   }
 }
 
-// 08-16 XR, remove dependencies on normal and beta distributions
-/*
-void Matrix::mulVarNormal() {
-  // n_: dimension
-  // m_: num_features
-  Eigen::VectorXf mean(n_);
-  Eigen::MatrixXf covar(n_, n_);
-  mean.setZero();
-  covar.setIdentity();
-  Eigen::EigenMultivariateNormal<float> normX_solver(mean, covar);
-  Eigen::MatrixXf init = normX_solver.samples(m_).transpose();
-  for (int32_t i = 0; i < init.size(); i++) {
-    data_[(i % m_) * n_ + (i / m_)] = *(init.data() + i);
-  }
-}
-
-void Matrix::beta(std::vector<real> a, std::vector<real> b) {
-  assert(a.size() == b.size());
-  assert(a.size() == n_);
-  for (int32_t j = 0; j < n_; j++) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    sftrabbit::beta_distribution<> beta(a[j], b[j]);
-    for (int32_t i = 0; i < m_; i++) {
-      data_[i * n_+ j] = beta(gen);
-    }
-  }
-}
-*/
-
 void Matrix::addRow(const Vector& vec, int64_t i, real a) {
   assert(i >= 0);
   assert(i < m_);
@@ -127,10 +97,10 @@ void Matrix::load(std::istream& in) {
   in.read((char*)data_, m_ * n_ * sizeof(real));
 }
 
-real Matrix::getCell(int64_t i, int64_t j) { return data_[i * n_ + j]; }
-
-void Matrix::updateCell(int64_t i, int64_t j, real value) {
-  data_[i * n_ + j] = value;
+real& Matrix::operator()(int64_t i, int64_t j) {
+  assert(i >= 0);
+  assert(i < m_);
+  return data_[i * n_ + j];
 }
 
 real Matrix::lineL2(int64_t i) {

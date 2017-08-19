@@ -30,8 +30,7 @@ class Matrix {
   Matrix(int64_t, int64_t);
   Matrix(const Matrix&);
   Matrix& operator=(const Matrix&);
-  real getCell(int64_t, int64_t);
-  void updateCell(int64_t, int64_t, real);
+  real& operator()(int64_t, int64_t);
   ~Matrix();
 
   void zero();
