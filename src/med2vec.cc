@@ -65,7 +65,6 @@ void FastText::saveModel() {
   dict_->save(ofs);
   input_->save(ofs);
   output_->save(ofs);
-  th_->save(ofs);
   ofs.close();
 }
 
@@ -88,8 +87,7 @@ void FastText::loadModel(std::istream& in) {
   dict_->load(in);
   input_->load(in);
   output_->load(in);
-  th_->load(in);
-  model_ = std::make_shared<Model>(input_, output_, th_, nCtxt_, args_, 0);
+  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -129,7 +127,7 @@ void FastText::cbow(Model& model, real lr, const std::vector<int32_t>& line) {
   }
 }
 
-int32_t FastText::get_th_idx_week(int32_t dst) {
+int32_t FastText::get_attnid_week(int32_t dst) {
   int32_t thidx = 0;
   if (dst < -26) {
     thidx = 0;
@@ -153,7 +151,7 @@ int32_t FastText::get_th_idx_week(int32_t dst) {
   return thidx;
 }
 
-int32_t FastText::get_th_idx_day(int32_t dst) {
+int32_t FastText::get_attnid_day(int32_t dst) {
   int32_t thidx = 0;
   if (dst < -365) {
     thidx = 0;
@@ -181,7 +179,34 @@ int32_t FastText::get_th_idx_day(int32_t dst) {
   return thidx;
 }
 
-// line is a set of visits for one patient
+void FastText::attnContext(Model& model, real lr,
+                           const std::vector<word_time>& line) {
+  std::srand((unsigned)std::time(0));
+  for (auto central : line) {
+    if (central.wordsID.size() == 0) continue;
+    std::vector<std::pair<int32_t, int32_t>> input;
+    for (auto context : line) {
+      if (context.wordsID.size() == 0) continue;
+      int32_t dist = context.time - central.time;
+      int32_t relpos = -1;
+      if (args_->timeUnit == time_unit::day) {
+        relpos = get_attnid_day(dist);
+      } else {
+        relpos = get_attnid_week(dist);
+      }
+      for (int32_t k = 0; k < args_->nrand; k++) {
+        int32_t j = std::rand() % context.wordsID.size();
+        input.push_back(std::make_pair(context.wordsID[j], relpos));
+      }
+    }
+    for (auto target = central.wordsID.cbegin();
+         target != central.wordsID.cend(); target++) {
+      model.updateAttn(input, *target, lr);
+    }
+  }
+}
+
+/*
 void FastText::sgContext(Model& model, real lr,
                          const std::vector<word_time>& line) {
   for (int32_t v = 0; v < line.size(); v++) {
@@ -218,6 +243,7 @@ void FastText::sgContext(Model& model, real lr,
     }
   }
 }
+*/
 
 void FastText::wordVectors() {
   std::string word;
@@ -228,9 +254,7 @@ void FastText::wordVectors() {
   }
 }
 
-void FastText::printVectors() {
-  wordVectors();
-}
+void FastText::printVectors() { wordVectors(); }
 
 void FastText::trainThread(int32_t threadId) {
   std::ifstream ifs(args_->input);
@@ -243,14 +267,13 @@ void FastText::trainThread(int32_t threadId) {
 
   const int64_t ntokens = dict_->ntokens();
   int64_t localTokenCount = 0;
-  // std::vector<int32_t> line, labels;
   std::vector<word_time> line;
   std::vector<int32_t> labels;
   while (tokenCount < args_->epoch * ntokens) {
     real progress = real(tokenCount) / (args_->epoch * ntokens);
     real lr = args_->lr * (1.0 - progress);
     localTokenCount += dict_->getLineContext(ifs, line, labels, model.rng);
-    sgContext(model, lr, line);
+    attnContext(model, lr, line);
     if (localTokenCount > args_->lrUpdateRate) {
       tokenCount += localTokenCount;
       localTokenCount = 0;
@@ -335,22 +358,19 @@ void FastText::train(std::shared_ptr<Args> args) {
     input_->uniform(1.0 / args_->dim);
   }
 
-  if (args_->model == model_name::sup) {
-    output_ = std::make_shared<Matrix>(dict_->nlabels(), args_->dim);
-  } else {
-    output_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
-  }
+  output_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
   output_->zero();
 
-  // initialize matrix of theta
+  // initialize attn and bias
   if (args_->timeUnit == time_unit::day) {
     ws = 5;
   } else {
     ws = 4;
   }
-  std::cout << "ws: " << ws << std::endl;
-  th_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
-  int i = 0;
+  attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
+  // TODO: (xr) tune the initialization of attention parameters.
+  attn_->uniform(1.0 / args_->dim);
+  bias_->zero();
 
   start = clock();
   tokenCount = 0;
@@ -361,7 +381,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   for (auto it = threads.begin(); it != threads.end(); ++it) {
     it->join();
   }
-  model_ = std::make_shared<Model>(input_, output_, th_, nCtxt_, args_, 0);
+  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
 
   saveModel();
   if (args_->model != model_name::sup) {

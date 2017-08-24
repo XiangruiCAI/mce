@@ -43,6 +43,7 @@ class Model {
   std::shared_ptr<Args> args_;
   std::shared_ptr<Matrix> attn_;
   std::shared_ptr<Vector> bias_;
+  Vector softmaxattn_;
   Vector hidden_;
   Vector output_;
   Vector grad_;
@@ -73,7 +74,7 @@ class Model {
 
  public:
   Model(std::shared_ptr<Matrix>, std::shared_ptr<Matrix>,
-        std::shared_ptr<Matrix>, std::shared_ptr<Matrix>, std::shared_ptr<Args>,
+        std::shared_ptr<Matrix>, std::shared_ptr<Vector>, std::shared_ptr<Args>,
         int32_t);
   ~Model();
 
@@ -94,6 +95,12 @@ class Model {
                  Vector&) const;
   void update(const std::vector<int32_t>&, int32_t, real);
   void computeHidden(const std::vector<int32_t>&, Vector&) const;
+  void computeAttnHidden(const std::vector<std::pair<int32_t, int32_t>>&,
+                         Vector&, Vector&) const;
+  void computeAttnGradient(const std::vector<std::pair<int32_t, int32_t>>&,
+                           Vector&, Vector&) const;
+  void updateAttn(const std::vector<std::pair<int32_t, int32_t>>&, int32_t,
+                  real);
   void computeOutputSoftmax(Vector&, Vector&) const;
   void computeOutputSoftmax();
 

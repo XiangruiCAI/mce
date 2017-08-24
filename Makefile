@@ -9,14 +9,14 @@
 
 CXX = c++
 CXXFLAGS = -g -pthread -std=c++11
-OBJS = args.o dictionary.o matrix.o vector.o model.o utils.o fasttext.o
+OBJS = args.o dictionary.o matrix.o vector.o model.o utils.o med2vec.o
 INCLUDES = -I.
 
 opt: CXXFLAGS += -O3 -funroll-loops
-opt: fasttext
+opt: med2vec
 
 debug: CXXFLAGS += -g -O0 -fno-inline
-debug: fasttext
+debug: med2vec
 
 args.o: src/args.cc src/args.h
 	$(CXX) $(CXXFLAGS) -c src/args.cc
@@ -36,14 +36,14 @@ model.o: src/model.cc src/model.h src/args.h
 utils.o: src/utils.cc src/utils.h
 	$(CXX) $(CXXFLAGS) -c src/utils.cc
 
-fasttext.o: src/fasttext.cc src/*.h
-	$(CXX) $(CXXFLAGS) -c src/fasttext.cc
+med2vec.o: src/med2vec.cc src/*.h
+	$(CXX) $(CXXFLAGS) -c src/med2vec.cc
 
-fasttext: $(OBJS) src/fasttext.cc
-	$(CXX) $(CXXFLAGS) $(OBJS) src/main.cc -o fasttext
+med2vec: $(OBJS) src/med2vec.cc
+	$(CXX) $(CXXFLAGS) $(OBJS) src/main.cc -o med2vec
 
 clean:
-	rm -rf *.o fasttext
+	rm -rf *.o med2vec
 
 run:
 	./train.sh
