@@ -8,7 +8,7 @@
 #
 
 CXX = c++
-CXXFLAGS = -g -pthread -std=c++11
+CXXFLAGS = -pthread -std=c++11
 OBJS = args.o dictionary.o matrix.o vector.o model.o utils.o med2vec.o
 INCLUDES = -I.
 

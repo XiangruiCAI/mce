@@ -10,6 +10,7 @@
 #ifndef FASTTEXT_MODEL_H
 #define FASTTEXT_MODEL_H
 
+#include <iostream>
 #include <memory>
 #include <random>
 #include <utility>

@@ -39,6 +39,7 @@ class Vector {
     void mul(const Matrix&, const Vector&);
     void add(const Vector&, real);
     real dot(const Vector&) const;
+    real l1() const;
     int64_t argmax();
 };
 

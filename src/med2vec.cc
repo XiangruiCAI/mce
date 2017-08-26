@@ -369,7 +369,8 @@ void FastText::train(std::shared_ptr<Args> args) {
   }
   attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
   // TODO: (xr) tune the initialization of attention parameters.
-  attn_->uniform(1.0 / args_->dim);
+  attn_->uniform(1.0);
+  bias_ = std::make_shared<Vector>(2 * ws + 1);
   bias_->zero();
 
   start = clock();

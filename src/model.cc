@@ -247,6 +247,7 @@ void Model::updateAttn(const std::vector<std::pair<int32_t, int32_t>>& input,
   assert(target < osz_);
   if (input.size() == 0) return;
   computeAttnHidden(input, hidden_, softmaxattn_);
+  std::cout << "hidden l1: " << hidden_.l1() << std::endl;
   if (args_->loss == loss_name::ns) {
     loss_ += negativeSampling(target, lr);
   } else if (args_->loss == loss_name::hs) {

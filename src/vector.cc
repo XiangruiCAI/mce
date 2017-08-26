@@ -115,4 +115,12 @@ void Vector::add(const Vector& vec, real a) {
   }
 }
 
+real Vector::l1() const {
+  real l1 = 0;
+  for (int64_t i = 0; i < m_; i++) {
+    l1 += data_[i] > 0 ? data_[i] : -data_[i];
+  }
+  return l1;
+}
+
 }
