@@ -53,7 +53,8 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
   std::string command(argv[1]);
-  if (command == "skipgram" || command == "cbow") {
+  if (command == "skipgram" || command == "cbow" || command == "attn1" ||
+      command == "attn2") {
     train(argc, argv);
   } else if (command == "print-vectors") {
     printVectors(argc, argv);

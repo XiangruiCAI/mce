@@ -17,46 +17,45 @@
 
 namespace fasttext {
 
-enum class model_name : int {cbow=1, sg, sup};
-enum class loss_name : int {hs=1, ns, softmax};
-enum class time_unit : int {hour=1, day, week, month, season, year};
+enum class model_name : int { cbow = 1, sg, sup, attn1, attn2 };
+enum class loss_name : int { hs = 1, ns, softmax };
+enum class time_unit : int { hour = 1, day, week, month, season, year };
 
 class Args {
-  public:
-    Args();
-    std::string input;
-    std::string test;
-    std::string output;
-    double lr;
-    int lrUpdateRate;
-    int dim;
-    int ws;
-    int epoch;
-    int minCount;
-    int minCountLabel;
-    int neg;
-    int wordNgrams;
-    loss_name loss;
-    model_name model;
-    time_unit timeUnit;
-    int bucket;
-    int minn;
-    int maxn;
-    int thread;
-    double t;
-    std::string label;
-    int verbose;
-    std::string pretrainedVectors;
-    real beta_base;
-    real delta;
-    int nrand;
+ public:
+  Args();
+  std::string input;
+  std::string test;
+  std::string output;
+  double lr;
+  int lrUpdateRate;
+  int dim;
+  int ws;
+  int epoch;
+  int minCount;
+  int minCountLabel;
+  int neg;
+  int wordNgrams;
+  loss_name loss;
+  model_name model;
+  time_unit timeUnit;
+  int bucket;
+  int minn;
+  int maxn;
+  int thread;
+  double t;
+  std::string label;
+  int verbose;
+  std::string pretrainedVectors;
+  real beta_base;
+  real delta;
+  int nrand;
 
-    void parseArgs(int, char**);
-    void printHelp();
-    void save(std::ostream&);
-    void load(std::istream&);
+  void parseArgs(int, char**);
+  void printHelp();
+  void save(std::ostream&);
+  void load(std::istream&);
 };
-
 }
 
 #endif

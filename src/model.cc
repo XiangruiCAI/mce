@@ -125,7 +125,7 @@ void Model::computeHidden(const std::vector<int32_t>& input,
 }
 
 /*
-  computeAttnHidden: compute hidden vector in attention model.
+  computeAttnHidden: compute hidden vector in attention model (context view).
   Args:
     input: a pair vector; the first is the context feature, and the second is
   the relative position.
@@ -163,6 +163,34 @@ void Model::computeAttnHidden(
   }
   std::cout << std::endl;
   */
+}
+
+/*
+  computeAttnHidden2: compute hidden vector in attention model (feature view).
+  Args:
+    input: a pair vector; the first is the context feature, and the second is
+  the relative position.
+    hidden: the hidden vector.
+*/
+void Model::computeAttnHidden2(
+    const std::vector<std::pair<int32_t, int32_t>>& input, int32_t target,
+    Vector& hidden, Vector& softmaxattn) const {
+  assert(hidden.size() == hsz_);
+  hidden.zero();
+  softmaxattn.zero();
+  real sum = 0.0;
+  int32_t last_attn = -1;
+  for (int32_t i = 0; i < input.size(); i++) {
+    int32_t attn_idx = input[i].second;
+    if (attn_idx == last_attn) continue;
+    softmaxattn[attn_idx] =
+        std::exp((*attn_)(target, input[i].second) + (*bias_)[input[i].second]);
+    sum += softmaxattn[attn_idx];
+    last_attn = attn_idx;
+  }
+  for (int32_t i = 0; i < softmaxattn.size(); i++) softmaxattn[i] /= sum;
+  for (int32_t i = 0; i < input.size(); i++)
+    hidden.addRow(*wi_, input[i].first, softmaxattn[input[i].second]);
 }
 
 bool Model::comparePairs(const std::pair<real, int32_t>& l,
@@ -229,7 +257,7 @@ void Model::dfs(int32_t k, int32_t node, real score,
 
 /*
   computeAttnGradient: compute gradients for input vectors and attention
-  parameters.
+  parameters (context view).
   Args:
     input: a pair vector; the first is the context feature, and the second is
   the relative position.
@@ -259,7 +287,31 @@ void Model::computeAttnGradient(
 }
 
 /*
-  updateAttn: update the attention model.
+  computeAttnGradient2: compute gradients for input vectors and attention
+  parameters (feature view).
+  Args:
+    input: a pair vector; the first is the context feature, and the second is
+  the relative position.
+    gradient: the gradient vector.
+*/
+void Model::computeAttnGradient2(
+    const std::vector<std::pair<int32_t, int32_t>>& input, int32_t target,
+    Vector& gradient, Vector& softmaxattn) const {
+  assert(gradient.size() == hsz_);
+  for (int32_t i = 0; i < input.size(); i++) {
+    int32_t attn_idx = input[i].second;
+    // update input vectors
+    wi_->addRow(gradient, input[i].first, softmaxattn[attn_idx]);
+    // update attention parameters
+    real gattn = softmaxattn[attn_idx] * (1 - softmaxattn[attn_idx]) *
+                 wi_->dotRow(gradient, input[i].first);
+    (*attn_)(target, input[i].second) += gattn;
+    (*bias_)[input[i].second] += gattn;
+  }
+}
+
+/*
+  updateAttn: update the attention model (context view).
   Args:
     input: a pair vector; the first is the context feature, and the second is
   the relative position;
@@ -283,6 +335,33 @@ void Model::updateAttn(const std::vector<std::pair<int32_t, int32_t>>& input,
   nexamples_ += 1;
 
   computeAttnGradient(input, grad_, softmaxattn_);
+}
+
+/*
+  updateAttn2: update the attention model (feature view).
+  Args:
+    input: a pair vector; the first is the context feature, and the second is
+  the relative position;
+    target: the target feature;
+    lr: learning rate.
+*/
+void Model::updateAttn2(const std::vector<std::pair<int32_t, int32_t>>& input,
+                        int32_t target, real lr) {
+  assert(target >= 0);
+  assert(target < osz_);
+  if (input.size() == 0) return;
+  computeAttnHidden2(input, target, hidden_, softmaxattn_);
+  // std::cout << "hidden l1: " << hidden_.l1() << std::endl;
+  if (args_->loss == loss_name::ns) {
+    loss_ += negativeSampling(target, lr);
+  } else if (args_->loss == loss_name::hs) {
+    loss_ += hierarchicalSoftmax(target, lr);
+  } else {
+    loss_ += softmax(target, lr);
+  }
+  nexamples_ += 1;
+
+  computeAttnGradient2(input, target, grad_, softmaxattn_);
 }
 
 void Model::update(const std::vector<int32_t>& input, int32_t target, real lr) {

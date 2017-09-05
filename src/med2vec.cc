@@ -219,6 +219,13 @@ int32_t FastText::get_attnid_day(int32_t dst) {
   return thidx;
 }
 
+/*
+  attnContext: attention model from context view
+  Args:
+    model: model instance,
+    lr: learning rate,
+    line: a vector of word_time data structure
+*/
 void FastText::attnContext(Model& model, real lr,
                            const std::vector<word_time>& line) {
   std::srand((unsigned)std::time(0));
@@ -241,7 +248,11 @@ void FastText::attnContext(Model& model, real lr,
     }
     for (auto target = central.wordsID.cbegin();
          target != central.wordsID.cend(); target++) {
-      model.updateAttn(input, *target, lr);
+      if (args_->model == model_name::attn1) {
+        model.updateAttn(input, *target, lr);
+      } else if (args_->model == model_name::attn2) {
+        model.updateAttn2(input, *target, lr);
+      }
     }
   }
 }
@@ -409,7 +420,8 @@ void FastText::train(std::shared_ptr<Args> args) {
   }
   attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
   // TODO: (xr) tune the initialization of attention parameters.
-  attn_->uniform(1.0 / (2 * ws + 1));
+  // attn_->uniform(1.0 / (2 * ws + 1));
+  attn_->zero();
   bias_ = std::make_shared<Vector>(2 * ws + 1);
   bias_->zero();
 

@@ -53,6 +53,12 @@ void Args::parseArgs(int argc, char** argv) {
     lr = 0.1;
   } else if (command == "cbow") {
     model = model_name::cbow;
+  } else if (command == "attn1") {
+    // attn1: attention model from the context view
+    model = model_name::attn1;
+  } else if (command == "attn2") {
+    // attn1: attention model from the feature view
+    model = model_name::attn2;
   }
   int ai = 2;
   while (ai < argc) {
@@ -158,74 +164,83 @@ void Args::printHelp() {
   if (loss == loss_name::hs) lname = "hs";
   if (loss == loss_name::softmax) lname = "softmax";
   std::cout
-    << "\n"
-    << "The following arguments are mandatory:\n"
-    << "  -input              training file path\n"
-    << "  -output             output file path\n\n"
-    << "The following arguments are optional:\n"
-    << "  -lr                 learning rate [" << lr << "]\n"
-    << "  -lrUpdateRate       change the rate of updates for the learning rate [" << lrUpdateRate << "]\n"
-    << "  -dim                size of word vectors [" << dim << "]\n"
-    << "  -ws                 size of the context window [" << ws << "]\n"
-    << "  -epoch              number of epochs [" << epoch << "]\n"
-    << "  -minCount           minimal number of word occurences [" << minCount << "]\n"
-    << "  -minCountLabel      minimal number of label occurences [" << minCountLabel << "]\n"
-    << "  -neg                number of negatives sampled [" << neg << "]\n"
-    << "  -wordNgrams         max length of word ngram [" << wordNgrams << "]\n"
-    << "  -loss               loss function {ns, hs, softmax} [ns]\n"
-    << "  -bucket             number of buckets [" << bucket << "]\n"
-    << "  -minn               min length of char ngram [" << minn << "]\n"
-    << "  -maxn               max length of char ngram [" << maxn << "]\n"
-    << "  -thread             number of threads [" << thread << "]\n"
-    << "  -t                  sampling threshold [" << t << "]\n"
-    << "  -label              labels prefix [" << label << "]\n"
-    << "  -beta_base          base beta parameters for initializing theta matrix [" << beta_base << "]\n"
-    << "  -delta              small probability for random context [" << delta << "]\n"
-    << "  -timeUnit           unit of time scope [" << int(timeUnit) << "]\n"
-    << "  -nrand              number of random selection at each time point [" << int(nrand) << "]\n"
-    << "  -verbose            verbosity level [" << verbose << "]\n"
-    << "  -pretrainedVectors  pretrained word vectors for supervised learning []"
-    << std::endl;
+      << "\n"
+      << "The following arguments are mandatory:\n"
+      << "  -input              training file path\n"
+      << "  -output             output file path\n\n"
+      << "The following arguments are optional:\n"
+      << "  -lr                 learning rate [" << lr << "]\n"
+      << "  -lrUpdateRate       change the rate of updates for the learning "
+         "rate ["
+      << lrUpdateRate << "]\n"
+      << "  -dim                size of word vectors [" << dim << "]\n"
+      << "  -ws                 size of the context window [" << ws << "]\n"
+      << "  -epoch              number of epochs [" << epoch << "]\n"
+      << "  -minCount           minimal number of word occurences [" << minCount
+      << "]\n"
+      << "  -minCountLabel      minimal number of label occurences ["
+      << minCountLabel << "]\n"
+      << "  -neg                number of negatives sampled [" << neg << "]\n"
+      << "  -wordNgrams         max length of word ngram [" << wordNgrams
+      << "]\n"
+      << "  -loss               loss function {ns, hs, softmax} [ns]\n"
+      << "  -bucket             number of buckets [" << bucket << "]\n"
+      << "  -minn               min length of char ngram [" << minn << "]\n"
+      << "  -maxn               max length of char ngram [" << maxn << "]\n"
+      << "  -thread             number of threads [" << thread << "]\n"
+      << "  -t                  sampling threshold [" << t << "]\n"
+      << "  -label              labels prefix [" << label << "]\n"
+      << "  -beta_base          base beta parameters for initializing theta "
+         "matrix ["
+      << beta_base << "]\n"
+      << "  -delta              small probability for random context [" << delta
+      << "]\n"
+      << "  -timeUnit           unit of time scope [" << int(timeUnit) << "]\n"
+      << "  -nrand              number of random selection at each time point ["
+      << int(nrand) << "]\n"
+      << "  -verbose            verbosity level [" << verbose << "]\n"
+      << "  -pretrainedVectors  pretrained word vectors for supervised "
+         "learning []"
+      << std::endl;
 }
 
 void Args::save(std::ostream& out) {
-  out.write((char*) &(dim), sizeof(int));
-  out.write((char*) &(ws), sizeof(int));
-  out.write((char*) &(epoch), sizeof(int));
-  out.write((char*) &(minCount), sizeof(int));
-  out.write((char*) &(neg), sizeof(int));
-  out.write((char*) &(wordNgrams), sizeof(int));
-  out.write((char*) &(loss), sizeof(loss_name));
-  out.write((char*) &(model), sizeof(model_name));
-  out.write((char*) &(bucket), sizeof(int));
-  out.write((char*) &(minn), sizeof(int));
-  out.write((char*) &(maxn), sizeof(int));
-  out.write((char*) &(lrUpdateRate), sizeof(int));
-  out.write((char*) &(t), sizeof(double));
-  out.write((char*) &(beta_base), sizeof(double));
-  out.write((char*) &(delta), sizeof(double));
-  out.write((char*) &(timeUnit), sizeof(time_unit));
-  out.write((char*) &(nrand), sizeof(int));
+  out.write((char*)&(dim), sizeof(int));
+  out.write((char*)&(ws), sizeof(int));
+  out.write((char*)&(epoch), sizeof(int));
+  out.write((char*)&(minCount), sizeof(int));
+  out.write((char*)&(neg), sizeof(int));
+  out.write((char*)&(wordNgrams), sizeof(int));
+  out.write((char*)&(loss), sizeof(loss_name));
+  out.write((char*)&(model), sizeof(model_name));
+  out.write((char*)&(bucket), sizeof(int));
+  out.write((char*)&(minn), sizeof(int));
+  out.write((char*)&(maxn), sizeof(int));
+  out.write((char*)&(lrUpdateRate), sizeof(int));
+  out.write((char*)&(t), sizeof(double));
+  out.write((char*)&(beta_base), sizeof(double));
+  out.write((char*)&(delta), sizeof(double));
+  out.write((char*)&(timeUnit), sizeof(time_unit));
+  out.write((char*)&(nrand), sizeof(int));
 }
 
 void Args::load(std::istream& in) {
-  in.read((char*) &(dim), sizeof(int));
-  in.read((char*) &(ws), sizeof(int));
-  in.read((char*) &(epoch), sizeof(int));
-  in.read((char*) &(minCount), sizeof(int));
-  in.read((char*) &(neg), sizeof(int));
-  in.read((char*) &(wordNgrams), sizeof(int));
-  in.read((char*) &(loss), sizeof(loss_name));
-  in.read((char*) &(model), sizeof(model_name));
-  in.read((char*) &(bucket), sizeof(int));
-  in.read((char*) &(minn), sizeof(int));
-  in.read((char*) &(maxn), sizeof(int));
-  in.read((char*) &(lrUpdateRate), sizeof(int));
-  in.read((char*) &(t), sizeof(double));
-  in.read((char*) &(beta_base), sizeof(double));
-  in.read((char*) &(delta), sizeof(double));
-  in.read((char*) &(timeUnit), sizeof(time_unit));
-  in.read((char*) &(nrand), sizeof(int));
+  in.read((char*)&(dim), sizeof(int));
+  in.read((char*)&(ws), sizeof(int));
+  in.read((char*)&(epoch), sizeof(int));
+  in.read((char*)&(minCount), sizeof(int));
+  in.read((char*)&(neg), sizeof(int));
+  in.read((char*)&(wordNgrams), sizeof(int));
+  in.read((char*)&(loss), sizeof(loss_name));
+  in.read((char*)&(model), sizeof(model_name));
+  in.read((char*)&(bucket), sizeof(int));
+  in.read((char*)&(minn), sizeof(int));
+  in.read((char*)&(maxn), sizeof(int));
+  in.read((char*)&(lrUpdateRate), sizeof(int));
+  in.read((char*)&(t), sizeof(double));
+  in.read((char*)&(beta_base), sizeof(double));
+  in.read((char*)&(delta), sizeof(double));
+  in.read((char*)&(timeUnit), sizeof(time_unit));
+  in.read((char*)&(nrand), sizeof(int));
 }
-
 }
