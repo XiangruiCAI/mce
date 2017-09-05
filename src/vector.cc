@@ -22,13 +22,9 @@ Vector::Vector(int64_t m) {
   data_ = new real[m];
 }
 
-Vector::~Vector() {
-  delete[] data_;
-}
+Vector::~Vector() { delete[] data_; }
 
-int64_t Vector::size() const {
-  return m_;
-}
+int64_t Vector::size() const { return m_; }
 
 void Vector::zero() {
   for (int64_t i = 0; i < m_; i++) {
@@ -83,16 +79,11 @@ int64_t Vector::argmax() {
   return argmax;
 }
 
-real& Vector::operator[](int64_t i) {
-  return data_[i];
-}
+real& Vector::operator[](int64_t i) { return data_[i]; }
 
-const real& Vector::operator[](int64_t i) const {
-  return data_[i];
-}
+const real& Vector::operator[](int64_t i) const { return data_[i]; }
 
-std::ostream& operator<<(std::ostream& os, const Vector& v)
-{
+std::ostream& operator<<(std::ostream& os, const Vector& v) {
   os << std::setprecision(5);
   for (int64_t j = 0; j < v.m_; j++) {
     os << v.data_[j] << ' ';
@@ -123,4 +114,15 @@ real Vector::l1() const {
   return l1;
 }
 
+void Vector::save(std::ostream& out) {
+  out.write((char*)&m_, sizeof(int64_t));
+  out.write((char*)data_, m_ * sizeof(real));
+}
+
+void Vector::load(std::istream& in) {
+  in.read((char*)&m_, sizeof(int64_t));
+  delete[] data_;
+  data_ = new real[m_];
+  in.read((char*)data_, m_ * sizeof(real));
+}
 }

@@ -76,7 +76,7 @@ class Model {
  public:
   Model(std::shared_ptr<Matrix>, std::shared_ptr<Matrix>,
         std::shared_ptr<Matrix>, std::shared_ptr<Vector>, std::shared_ptr<Args>,
-        int32_t);
+        int32_t, int32_t);
   ~Model();
 
   real binaryLogistic(int32_t, bool, real);

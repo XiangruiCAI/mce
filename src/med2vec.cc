@@ -55,6 +55,34 @@ void FastText::saveVectors() {
   ofs.close();
 }
 
+void FastText::saveAttention() {
+  std::ofstream ofs(args_->output + ".attn");
+  if (!ofs.is_open()) {
+    std::cout << "Error opening file for saving attention vectors."
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  ofs << dict_->nwords() << " " << 2 * ws + 1 << std::endl;
+  Vector vec(2 * ws + 1);
+  for (int32_t i = 0; i < dict_->nwords(); i++) {
+    std::string word = dict_->getWord(i);
+    vec.zero();
+    vec.addRow(*attn_, i);
+    vec.add(*bias_, 1.0);
+    ofs << word << " " << vec << std::endl;
+  }
+  ofs.close();
+
+  ofs.open(args_->output + ".bias");
+  if (!ofs.is_open()) {
+    std::cout << "Error opening file for saving attention vectors."
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  ofs << *bias_ << std::endl;
+  ofs.close();
+}
+
 void FastText::saveModel() {
   std::ofstream ofs(args_->output + ".bin", std::ofstream::binary);
   if (!ofs.is_open()) {
@@ -65,6 +93,8 @@ void FastText::saveModel() {
   dict_->save(ofs);
   input_->save(ofs);
   output_->save(ofs);
+  attn_->save(ofs);
+  bias_->save(ofs);
   ofs.close();
 }
 
@@ -83,11 +113,21 @@ void FastText::loadModel(std::istream& in) {
   dict_ = std::make_shared<Dictionary>(args_);
   input_ = std::make_shared<Matrix>();
   output_ = std::make_shared<Matrix>();
+  attn_ = std::make_shared<Matrix>();
+  bias_ = std::make_shared<Vector>(args_->dim);
   args_->load(in);
   dict_->load(in);
   input_->load(in);
   output_->load(in);
-  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
+  attn_->load(in);
+  bias_->load(in);
+  // initialize attn and bias
+  if (args_->timeUnit == time_unit::day) {
+    ws = 5;
+  } else {
+    ws = 4;
+  }
+  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0, ws);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -262,7 +302,7 @@ void FastText::trainThread(int32_t threadId) {
   // utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
   utils::seekToBOS(ifs, threadId * utils::size(ifs) / args_->thread);
 
-  Model model(input_, output_, attn_, bias_, args_, threadId);
+  Model model(input_, output_, attn_, bias_, args_, threadId, ws);
   model.setTargetCounts(dict_->getCounts(entry_type::word));
 
   const int64_t ntokens = dict_->ntokens();
@@ -369,7 +409,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   }
   attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
   // TODO: (xr) tune the initialization of attention parameters.
-  attn_->uniform(1.0);
+  attn_->uniform(1.0 / (2 * ws + 1));
   bias_ = std::make_shared<Vector>(2 * ws + 1);
   bias_->zero();
 
@@ -382,11 +422,12 @@ void FastText::train(std::shared_ptr<Args> args) {
   for (auto it = threads.begin(); it != threads.end(); ++it) {
     it->join();
   }
-  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
+  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0, ws);
 
   saveModel();
   if (args_->model != model_name::sup) {
     saveVectors();
+    saveAttention();
   }
 }
 }

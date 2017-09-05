@@ -20,31 +20,31 @@ namespace fasttext {
 class Matrix;
 
 class Vector {
+ public:
+  int64_t m_;
+  real* data_;
 
-  public:
-    int64_t m_;
-    real* data_;
+  explicit Vector(int64_t);
+  ~Vector();
 
-    explicit Vector(int64_t);
-    ~Vector();
+  real& operator[](int64_t);
+  const real& operator[](int64_t) const;
 
-    real& operator[](int64_t);
-    const real& operator[](int64_t) const;
-
-    int64_t size() const;
-    void zero();
-    void mul(real);
-    void addRow(const Matrix&, int64_t);
-    void addRow(const Matrix&, int64_t, real);
-    void mul(const Matrix&, const Vector&);
-    void add(const Vector&, real);
-    real dot(const Vector&) const;
-    real l1() const;
-    int64_t argmax();
+  int64_t size() const;
+  void zero();
+  void mul(real);
+  void addRow(const Matrix&, int64_t);
+  void addRow(const Matrix&, int64_t, real);
+  void mul(const Matrix&, const Vector&);
+  void add(const Vector&, real);
+  real dot(const Vector&) const;
+  real l1() const;
+  int64_t argmax();
+  void save(std::ostream&);
+  void load(std::istream&);
 };
 
 std::ostream& operator<<(std::ostream&, const Vector&);
-
 }
 
 #endif
