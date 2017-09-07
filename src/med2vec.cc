@@ -229,10 +229,12 @@ int32_t FastText::get_attnid_day(int32_t dst) {
 void FastText::attnContext(Model& model, real lr,
                            const std::vector<word_time>& line) {
   std::srand((unsigned)std::time(0));
-  for (auto central : line) {
+  for (int32_t f = 0; f < line.size(); f++) {
+    auto central = line[f];
     if (central.wordsID.size() == 0) continue;
     std::vector<std::pair<int32_t, int32_t>> input;
-    for (auto context : line) {
+    for (int32_t c = 0; c < line.size(); c++) {
+      auto context = line[c];
       if (context.wordsID.size() == 0) continue;
       int32_t dist = context.time - central.time;
       int32_t relpos = -1;
@@ -241,9 +243,19 @@ void FastText::attnContext(Model& model, real lr,
       } else {
         relpos = get_attnid_week(dist);
       }
-      for (int32_t k = 0; k < args_->nrand; k++) {
-        int32_t j = std::rand() % context.wordsID.size();
-        input.push_back(std::make_pair(context.wordsID[j], relpos));
+      if (f == c) {
+        // for (auto word : context.wordsID) {
+        //  input.push_back(std::make_pair(word, relpos));
+        //}
+        for (int32_t k = 0; k < args_->nrand * 4; k++) {
+          int32_t j = std::rand() % context.wordsID.size();
+          input.push_back(std::make_pair(context.wordsID[j], relpos));
+        }
+      } else {
+        for (int32_t k = 0; k < args_->nrand; k++) {
+          int32_t j = std::rand() % context.wordsID.size();
+          input.push_back(std::make_pair(context.wordsID[j], relpos));
+        }
       }
     }
     for (auto target = central.wordsID.cbegin();

@@ -156,13 +156,12 @@ void Model::computeAttnHidden(
   for (int32_t i = 0; i < softmaxattn.size(); i++) softmaxattn[i] /= sum;
   for (int32_t i = 0; i < input.size(); i++)
     hidden.addRow(*wi_, input[i].first, softmaxattn[input[i].second]);
-  /*
+
   std::cout << "attention" << std::endl;
   for (int32_t i = 0; i < softmaxattn.size(); i++) {
     std::cout << softmaxattn[i] << " ";
   }
   std::cout << std::endl;
-  */
 }
 
 /*
