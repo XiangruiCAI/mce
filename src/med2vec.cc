@@ -127,7 +127,7 @@ void FastText::loadModel(std::istream& in) {
   } else {
     ws = 4;
   }
-  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0, ws);
+  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
   } else {
@@ -243,11 +243,12 @@ void FastText::attnContext(Model& model, real lr,
       } else {
         relpos = get_attnid_week(dist);
       }
+      /*
       if (f == c) {
         // for (auto word : context.wordsID) {
         //  input.push_back(std::make_pair(word, relpos));
         //}
-        for (int32_t k = 0; k < args_->nrand * 4; k++) {
+        for (int32_t k = 0; k < args_->nrand * 2; k++) {
           int32_t j = std::rand() % context.wordsID.size();
           input.push_back(std::make_pair(context.wordsID[j], relpos));
         }
@@ -256,6 +257,12 @@ void FastText::attnContext(Model& model, real lr,
           int32_t j = std::rand() % context.wordsID.size();
           input.push_back(std::make_pair(context.wordsID[j], relpos));
         }
+      }
+      */
+      if (relpos == -1) continue;
+      for (int32_t k = 0; k < args_->nrand; k++) {
+        int32_t j = std::rand() % context.wordsID.size();
+        input.push_back(std::make_pair(context.wordsID[j], relpos));
       }
     }
     for (auto target = central.wordsID.cbegin();
@@ -325,7 +332,7 @@ void FastText::trainThread(int32_t threadId) {
   // utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
   utils::seekToBOS(ifs, threadId * utils::size(ifs) / args_->thread);
 
-  Model model(input_, output_, attn_, bias_, args_, threadId, ws);
+  Model model(input_, output_, attn_, bias_, args_, threadId);
   model.setTargetCounts(dict_->getCounts(entry_type::word));
 
   const int64_t ntokens = dict_->ntokens();
@@ -446,7 +453,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   for (auto it = threads.begin(); it != threads.end(); ++it) {
     it->join();
   }
-  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0, ws);
+  model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
 
   saveModel();
   if (args_->model != model_name::sup) {

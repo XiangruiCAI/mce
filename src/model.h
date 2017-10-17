@@ -44,7 +44,7 @@ class Model {
   std::shared_ptr<Args> args_;
   std::shared_ptr<Matrix> attn_;
   std::shared_ptr<Vector> bias_;
-  Vector softmaxattn_;
+  std::vector<real> softmaxattn_;
   Vector hidden_;
   Vector output_;
   Vector grad_;
@@ -76,7 +76,7 @@ class Model {
  public:
   Model(std::shared_ptr<Matrix>, std::shared_ptr<Matrix>,
         std::shared_ptr<Matrix>, std::shared_ptr<Vector>, std::shared_ptr<Args>,
-        int32_t, int32_t);
+        int32_t);
   ~Model();
 
   real binaryLogistic(int32_t, bool, real);
@@ -97,15 +97,15 @@ class Model {
   void update(const std::vector<int32_t>&, int32_t, real);
   void computeHidden(const std::vector<int32_t>&, Vector&) const;
   void computeAttnHidden(const std::vector<std::pair<int32_t, int32_t>>&,
-                         Vector&, Vector&) const;
+                         Vector&, std::vector<real>&) const;
   void computeAttnGradient(const std::vector<std::pair<int32_t, int32_t>>&,
-                           Vector&, Vector&) const;
+                           Vector&, std::vector<real>&) const;
   void updateAttn(const std::vector<std::pair<int32_t, int32_t>>&, int32_t,
                   real);
   void computeAttnHidden2(const std::vector<std::pair<int32_t, int32_t>>&,
-                          int32_t, Vector&, Vector&) const;
+                          int32_t, Vector&, std::vector<real>&) const;
   void computeAttnGradient2(const std::vector<std::pair<int32_t, int32_t>>&,
-                            int32_t, Vector&, Vector&) const;
+                            int32_t, Vector&, std::vector<real>&) const;
   void updateAttn2(const std::vector<std::pair<int32_t, int32_t>>&, int32_t,
                    real);
   void computeOutputSoftmax(Vector&, Vector&) const;
