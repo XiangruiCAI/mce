@@ -100,8 +100,7 @@ class Model {
                          Vector&, std::vector<real>&) const;
   void computeAttnGradient(const std::vector<std::pair<int32_t, int32_t>>&,
                            Vector&, std::vector<real>&) const;
-  void updateAttn(const std::vector<std::pair<int32_t, int32_t>>&, int32_t,
-                  real);
+  void updateAttn(std::vector<std::pair<int32_t, int32_t>>&, int32_t, real);
   void computeAttnHidden2(const std::vector<std::pair<int32_t, int32_t>>&,
                           int32_t, Vector&, std::vector<real>&) const;
   void computeAttnGradient2(const std::vector<std::pair<int32_t, int32_t>>&,

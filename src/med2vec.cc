@@ -349,10 +349,8 @@ void FastText::trainThread(int32_t threadId) {
       localTokenCount = 0;
       if (threadId == 0 && args_->verbose > 1) {
         printInfo(progress, model.getLoss());
-        // std::cout << "input l1 norm: " << input_->l1()
-        //    << " theta l1 norm " << th_->l1()
-        //    << " ouput l1 norm " << output_->l1()
-        //    << std::endl;
+        // std::cout << "input l1 norm: " << input_->l1() << " ouput l1 norm "
+        //          << output_->l1() << std::endl;
       }
     }
   }
