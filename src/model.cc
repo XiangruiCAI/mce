@@ -283,8 +283,9 @@ void Model::computeAttnGradient(
     // update attention parameters
     // real gattn = softmaxattn.at(i) * (1 - softmaxattn.at(i)) *
     //             wi_->dotRow(gradient, input[i].first);
-    real gattn = softmaxattn[i] * (wi_->dotRow(gradient, input[i].first) -
-                                   gradient.dot(hidden_));
+    // use hidden_ vector to avoid overflow?
+    real gattn = softmaxattn.at(i) * (1 - softmaxattn.at(i)) *
+        (wi_->dotRow(gradient, input[i].first) - gradient.dot(hidden_));
     (*attn_)(input[i].first, input[i].second) += gattn;
     (*bias_)[input[i].second] += gattn;
   }
