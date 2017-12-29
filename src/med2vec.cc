@@ -62,8 +62,8 @@ void FastText::saveAttention() {
               << std::endl;
     exit(EXIT_FAILURE);
   }
-  ofs << dict_->nwords() << " " << 2 * ws + 1 << std::endl;
-  Vector vec(2 * ws + 1);
+  ofs << dict_->nwords() << " " << 2 * args_->attnws + 1 << std::endl;
+  Vector vec(2 * args_->attnws + 1);
   for (int32_t i = 0; i < dict_->nwords(); i++) {
     std::string word = dict_->getWord(i);
     vec.zero();
@@ -122,12 +122,14 @@ void FastText::loadModel(std::istream& in) {
   attn_->load(in);
   bias_->load(in);
   // initialize attn and bias
+  /*
   if (args_->timeUnit == time_unit::day) {
     ws = 5;
   } else {
     ws = 4;
   }
   // ws = args_->ws;
+  */
   model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
@@ -229,6 +231,30 @@ int32_t FastText::get_attnid_day(int32_t dst) {
 */
 void FastText::attnContext(Model& model, real lr,
                            const std::vector<word_time>& line) {
+  // convert word_time to a vector of (word, time) pairs
+  std::vector<std::pair<int32_t, int32_t>> seq;
+  for (auto wt : line) {
+    for (auto feature : wt.wordsID) {
+      seq.push_back(std::make_pair(feature, wt.time));
+    }
+  }
+  // std::cout<< "seq.size(): " << seq.size() << std::endl;
+  std::uniform_int_distribution<> uniform(1, args_->ws);
+  for (int32_t f = 0; f < seq.size(); f++) {
+    int32_t boundary = uniform(model.rng);
+    std::vector<std::pair<int32_t, int32_t>> input;
+    for (int32_t c = -boundary; c <= boundary; c++) {
+      if (c != 0 && f + c >= 0 && f + c < seq.size()) {
+        int32_t distance = seq[f + c].second - seq[f].second + args_->attnws;
+        if (distance < 0 || distance > 2 * args_->attnws)
+          continue;
+        input.push_back(std::make_pair(seq[f + c].first, distance));
+      }
+    }
+    model.updateAttn(input, seq[f].first, lr);
+  }
+}
+  /*
   std::srand((unsigned)std::time(0));
   for (int32_t f = 0; f < line.size(); f++) {
     auto central = line[f];
@@ -245,22 +271,6 @@ void FastText::attnContext(Model& model, real lr,
         relpos = get_attnid_week(dist);
         //relpos = dist + ws;
       }
-      /*
-      if (f == c) {
-        // for (auto word : context.wordsID) {
-        //  input.push_back(std::make_pair(word, relpos));
-        //}
-        for (int32_t k = 0; k < args_->nrand * 2; k++) {
-          int32_t j = std::rand() % context.wordsID.size();
-          input.push_back(std::make_pair(context.wordsID[j], relpos));
-        }
-      } else {
-        for (int32_t k = 0; k < args_->nrand; k++) {
-          int32_t j = std::rand() % context.wordsID.size();
-          input.push_back(std::make_pair(context.wordsID[j], relpos));
-        }
-      }
-      */
       // if (relpos == -1) continue;
       if (relpos < 0 || relpos > ws * 2) continue;
       int32_t ck = context.wordsID.size() < args_->nrand ? context.wordsID.size() : args_->nrand;
@@ -278,46 +288,7 @@ void FastText::attnContext(Model& model, real lr,
       }
     }
   }
-}
-
-/*
-void FastText::sgContext(Model& model, real lr,
-                         const std::vector<word_time>& line) {
-  for (int32_t v = 0; v < line.size(); v++) {
-    if (line[v].wordsID.size() == 0) continue;
-    for (int32_t c = 0; c < line.size(); c++) {
-      if (line[c].wordsID.size() == 0) continue;
-      if (c == v && line[c].wordsID.size() == 1) continue;
-      int32_t dst = line[c].time - line[v].time;
-      int32_t thidx = -1;
-      if (args_->timeUnit == time_unit::day) {
-        thidx = get_th_idx_day(dst);
-      } else {
-        thidx = get_th_idx_week(dst);
-      }
-      for (int32_t i = 0; i < line[v].wordsID.size(); i++) {
-        const std::vector<int32_t> inWord = {line[v].wordsID[i]};
-        real theta = th_->getCell(inWord[0], thidx);
-        std::srand((unsigned)std::time(0));
-        // real pContext = 0.0;
-        // int32_t a = std::abs(ws - thidx) + 1;
-        // int32_t num = 0;
-        for (int32_t k = 0; k < args_->nrand; k++) {
-          int32_t j = std::rand() % line[c].wordsID.size();
-          // for (int32_t j = 0; j < line[c].wordsID.size(); j++) {
-          // std::cout << "j: " << j << std::endl;
-          int32_t target = line[c].wordsID[j];
-          if (target != inWord[0]) {
-            // num++;
-            model.update(inWord, target, lr, beta_a[thidx], beta_b[thidx],
-                         inWord[0], thidx);
-          }
-        }
-      }
-    }
-  }
-}
-*/
+  */
 
 void FastText::wordVectors() {
   std::string word;
@@ -434,15 +405,18 @@ void FastText::train(std::shared_ptr<Args> args) {
   output_->zero();
 
   // initialize attn and bias
+  /*
   if (args_->timeUnit == time_unit::day) {
     ws = 5;
   } else {
     ws = 4;
   }
+  */
   // ws = args_->ws;
-  attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
+  attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * args_->attnws + 1);
   attn_->zero();
-  bias_ = std::make_shared<Vector>(2 * ws + 1);
+  bias_ = std::make_shared<Vector>(2 * args_->attnws + 1);
+  std::cout << "attention size: " << 2 * args_->attnws + 1 << std::endl;
   bias_->zero();
 
   start = clock();

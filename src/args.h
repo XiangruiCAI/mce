@@ -31,6 +31,7 @@ class Args {
   int lrUpdateRate;
   int dim;
   int ws;
+  int attnws;
   int epoch;
   int minCount;
   int minCountLabel;

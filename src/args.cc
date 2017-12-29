@@ -20,6 +20,7 @@ Args::Args() {
   lr = 0.05;
   dim = 100;
   ws = 5;
+  attnws = 10;
   epoch = 5;
   minCount = 5;
   minCountLabel = 0;
@@ -85,6 +86,8 @@ void Args::parseArgs(int argc, char** argv) {
       dim = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-ws") == 0) {
       ws = atoi(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-attnws") == 0) {
+      attnws = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-epoch") == 0) {
       epoch = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-minCount") == 0) {
@@ -175,6 +178,7 @@ void Args::printHelp() {
       << lrUpdateRate << "]\n"
       << "  -dim                size of word vectors [" << dim << "]\n"
       << "  -ws                 size of the context window [" << ws << "]\n"
+      << "  -attnws             size of the attention window [" << attnws << "]\n"
       << "  -epoch              number of epochs [" << epoch << "]\n"
       << "  -minCount           minimal number of word occurences [" << minCount
       << "]\n"
@@ -207,6 +211,7 @@ void Args::printHelp() {
 void Args::save(std::ostream& out) {
   out.write((char*)&(dim), sizeof(int));
   out.write((char*)&(ws), sizeof(int));
+  out.write((char*)&(attnws), sizeof(int));
   out.write((char*)&(epoch), sizeof(int));
   out.write((char*)&(minCount), sizeof(int));
   out.write((char*)&(neg), sizeof(int));
@@ -227,6 +232,7 @@ void Args::save(std::ostream& out) {
 void Args::load(std::istream& in) {
   in.read((char*)&(dim), sizeof(int));
   in.read((char*)&(ws), sizeof(int));
+  in.read((char*)&(attnws), sizeof(int));
   in.read((char*)&(epoch), sizeof(int));
   in.read((char*)&(minCount), sizeof(int));
   in.read((char*)&(neg), sizeof(int));
