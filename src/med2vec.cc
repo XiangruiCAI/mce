@@ -127,7 +127,7 @@ void FastText::loadModel(std::istream& in) {
   } else {
     ws = 4;
   }
-  ws = args_->ws;
+  // ws = args_->ws;
   model_ = std::make_shared<Model>(input_, output_, attn_, bias_, args_, 0);
   if (args_->model == model_name::sup) {
     model_->setTargetCounts(dict_->getCounts(entry_type::label));
@@ -243,7 +243,7 @@ void FastText::attnContext(Model& model, real lr,
         relpos = get_attnid_day(dist);
       } else {
         relpos = get_attnid_week(dist);
-        relpos = dist + ws;
+        //relpos = dist + ws;
       }
       /*
       if (f == c) {
@@ -263,7 +263,8 @@ void FastText::attnContext(Model& model, real lr,
       */
       // if (relpos == -1) continue;
       if (relpos < 0 || relpos > ws * 2) continue;
-      for (int32_t k = 0; k < args_->nrand; k++) {
+      int32_t ck = context.wordsID.size() < args_->nrand ? context.wordsID.size() : args_->nrand;
+      for (int32_t k = 0; k < context.wordsID.size(); k++) {
         int32_t j = std::rand() % context.wordsID.size();
         input.push_back(std::make_pair(context.wordsID[j], relpos));
       }
@@ -438,10 +439,8 @@ void FastText::train(std::shared_ptr<Args> args) {
   } else {
     ws = 4;
   }
-  ws = args_->ws;
+  // ws = args_->ws;
   attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * ws + 1);
-  // TODO: (xr) tune the initialization of attention parameters.
-  // attn_->uniform(1.0 / (2 * ws + 1));
   attn_->zero();
   bias_ = std::make_shared<Vector>(2 * ws + 1);
   bias_->zero();
