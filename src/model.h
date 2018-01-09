@@ -105,8 +105,7 @@ class Model {
                           int32_t, Vector&, std::vector<real>&) const;
   void computeAttnGradient2(const std::vector<std::pair<int32_t, int32_t>>&,
                             int32_t, Vector&, std::vector<real>&) const;
-  void updateAttn2(const std::vector<std::pair<int32_t, int32_t>>&, int32_t,
-                   real);
+  void updateAttn2(std::vector<std::pair<int32_t, int32_t>>&, int32_t, real);
   void computeOutputSoftmax(Vector&, Vector&) const;
   void computeOutputSoftmax();
 

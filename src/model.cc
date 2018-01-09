@@ -67,6 +67,8 @@ real Model::negativeSampling(int32_t target, real lr) {
       loss += binaryLogistic(getNegative(target), false, lr);
     }
   }
+  // std::cout << "grad_" << std::endl;
+  // std::cout << grad_ << std::endl;
   return loss;
 }
 
@@ -162,6 +164,8 @@ void Model::computeAttnHidden(
   for (int32_t i = 0; i < input.size(); i++) softmaxattn.at(i) /= sum;
   for (int32_t i = 0; i < input.size(); i++)
     hidden.addRow(*wi_, input[i].first, softmaxattn.at(i));
+  // std::cout << "hidden" << std::endl;
+  // std::cout << hidden << std::endl;
   /*
   std::cout << "attention" << std::endl;
   for (int32_t i = 0; i < softmaxattn.size(); i++) {
@@ -185,12 +189,23 @@ void Model::computeAttnHidden2(
   hidden.zero();
   softmaxattn.clear();
   real sum = 0.0;
+  real attention_max = 0.0;
+  real attention_i  = 0.0;
+  std::vector<real> attention;
   for (int32_t i = 0; i < input.size(); i++) {
-    softmaxattn.push_back(std::exp((*attn_)(target, input[i].second) +
-                                   (*bias_)[input[i].second]));
-    sum += softmaxattn[i];
+    attention_i = (*attn_)(target, input[i].second) + (*bias_)[input[i].second];
+    if (attention_i > attention_max)
+      attention_max = attention_i;
+    attention.push_back(attention_i);
   }
-  for (int32_t i = 0; i < softmaxattn.size(); i++) softmaxattn[i] /= sum;
+  for (int32_t i = 0; i < input.size(); i++) {
+    if (attention.at(i) - attention_max < -50)
+      softmaxattn.push_back(0.0);
+    else
+      softmaxattn.push_back(std::exp(attention.at(i) - attention_max));
+    sum += softmaxattn.at(i);
+  }
+  for (int32_t i = 0; i < input.size(); i++) softmaxattn.at(i) /= sum;
   for (int32_t i = 0; i < input.size(); i++)
     hidden.addRow(*wi_, input[i].first, softmaxattn[i]);
 }
@@ -277,15 +292,22 @@ void Model::computeAttnGradient(
   std::cout << std::endl;
   */
   int32_t input_size = input.size();
+  // std::cout << gradient << std::endl;
+  // for (int32_t i = 0; i < input_size; i++) {
+  //     std::cout << softmaxattn.at(i) << std::endl;
+  // }
   for (int32_t i = 0; i < input_size; i++) {
-    // update input vectors
-    wi_->addRow(gradient, input[i].first, softmaxattn.at(i) * input_size);
     // update attention parameters
     // real gattn = softmaxattn.at(i) * (1 - softmaxattn.at(i)) *
-    //             wi_->dotRow(gradient, input[i].first);
+    //             (wi_->dotRow(gradient, input[i].first) - gradient.dot(hidden_);
+
+    real gattn = softmaxattn.at(i) * (wi_->dotRow(gradient, input[i].first) - gradient.dot(hidden_));
+    // update input vectors
+    // std::cout << "gattn: " << gattn << std::endl;
+    wi_->addRow(gradient, input[i].first, softmaxattn.at(i) * input_size);
     // use hidden_ vector to avoid overflow?
-    real gattn = softmaxattn.at(i) * (1 - softmaxattn.at(i)) *
-        (wi_->dotRow(gradient, input[i].first) - gradient.dot(hidden_));
+    // real gattn = softmaxattn.at(i) * (1 - softmaxattn.at(i)) *
+    //     (wi_->dotRow(gradient, input[i].first) - gradient.dot(hidden_));
     (*attn_)(input[i].first, input[i].second) += gattn;
     (*bias_)[input[i].second] += gattn;
   }
@@ -303,12 +325,12 @@ void Model::computeAttnGradient2(
     const std::vector<std::pair<int32_t, int32_t>>& input, int32_t target,
     Vector& gradient, std::vector<real>& softmaxattn) const {
   assert(gradient.size() == hsz_);
+  int32_t input_size = input.size();
   for (int32_t i = 0; i < input.size(); i++) {
-    // update input vectors
-    wi_->addRow(gradient, input[i].first, softmaxattn[i]);
     // update attention parameters
-    real gattn = softmaxattn[i] * (1 - softmaxattn[i]) *
-                 wi_->dotRow(gradient, input[i].first);
+    real gattn = softmaxattn[i] * (wi_->dotRow(gradient, input[i].first) - gradient.dot(hidden_));
+    // update input vectors
+    wi_->addRow(gradient, input[i].first, softmaxattn[i] * input_size);
     (*attn_)(target, input[i].second) += gattn;
     (*bias_)[input[i].second] += gattn;
   }
@@ -360,13 +382,22 @@ void Model::updateAttn(std::vector<std::pair<int32_t, int32_t>>& input,
     target: the target feature;
     lr: learning rate.
 */
-void Model::updateAttn2(const std::vector<std::pair<int32_t, int32_t>>& input,
+void Model::updateAttn2(std::vector<std::pair<int32_t, int32_t>>& input,
                         int32_t target, real lr) {
   assert(target >= 0);
   assert(target < osz_);
   if (input.size() == 0) return;
   softmaxattn_.clear();
   std::vector<real>().swap(softmaxattn_);
+  // erase contexts that are the same to the target
+  // std::vector<std::pair<int32_t, int32_t>>::iterator iter;
+  for (auto iter = input.begin(); iter != input.end();) {
+    if (iter->first == target)
+      iter = input.erase(iter);
+    else
+      iter++;
+  }
+  if (input.size() == 0) return;
   computeAttnHidden2(input, target, hidden_, softmaxattn_);
   // std::cout << "hidden l1: " << hidden_.l1() << std::endl;
   if (args_->loss == loss_name::ns) {

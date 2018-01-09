@@ -242,6 +242,7 @@ void FastText::attnContext(Model& model, real lr,
   std::uniform_int_distribution<> uniform(1, args_->ws);
   for (int32_t f = 0; f < seq.size(); f++) {
     int32_t boundary = uniform(model.rng);
+    // std::cout << "boundary: " << boundary << std::endl;
     std::vector<std::pair<int32_t, int32_t>> input;
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && f + c >= 0 && f + c < seq.size()) {
@@ -251,7 +252,14 @@ void FastText::attnContext(Model& model, real lr,
         input.push_back(std::make_pair(seq[f + c].first, distance));
       }
     }
-    model.updateAttn(input, seq[f].first, lr);
+    //for (auto token : input) {
+    //    std::cout << dict_->getWord(token.first) << " " << token.second << std::endl;
+    //}
+    if (args_->model == model_name::attn1)
+        model.updateAttn(input, seq[f].first, lr);
+    else if (args_->model == model_name::attn2)
+        model.updateAttn2(input, seq[f].first, lr);
+    // if (f == 1) break;
   }
 }
   /*
@@ -416,7 +424,7 @@ void FastText::train(std::shared_ptr<Args> args) {
   attn_ = std::make_shared<Matrix>(dict_->nwords(), 2 * args_->attnws + 1);
   attn_->zero();
   bias_ = std::make_shared<Vector>(2 * args_->attnws + 1);
-  std::cout << "attention size: " << 2 * args_->attnws + 1 << std::endl;
+  // std::cout << "attention size: " << 2 * args_->attnws + 1 << std::endl;
   bias_->zero();
 
   start = clock();
