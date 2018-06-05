@@ -1,3 +1,45 @@
+# Medical Concept Embedding
+
+## Introduction
+
+This repository is an implementation introduce in the following paper, which can be found on [TODO: arxiv]
+
+    Medical Concept Embedding with Time-Aware Attention
+    Xiangrui Cai, Jinyang Gao, Kee Yuan Ngiam, Beng Chin Ooi, Ying Zhang, Xiaojie Yuan
+    IJCAI 2018 (To appear)
+
+![EMR segment](./illustration/emr.png)
+
+Medical concept embedding is central to healthcare analysis on the structured Electronic Medical Records (EMRs), which represents the medical concepts by low-dimensional continuous vectors. The vectors not only benefit the performance of downstream application, but also enable knowledge base construction in healthcare domain. 
+
+Unfortunately, current methods for medical concept embedding ignore two important factors in EMRs:
+
+* __Time lag__: 2 consecutive medical concepts may be not temporal close.
+* __Various temporal scopes__: temporal scopes of medical concepts often varies a lot, e.g., common cold and diabetes.
+
+Our method, MCE, is proposed to address the problems above. MCE employs a time-aware attention to model the influence of the target medical concept on a series of time periods around it. As shown in the following figure, the model is built based on CBOW and 
+the darker cells indicate heavier influence of the target on the corresponding time unit.
+
+![Time-aware Model](./illustration/TAattention.png)
+
+## Implementation
+
+This implementation is based on the [FastText toolkit](https://github.com/facebookresearch/fastText). However, the input of EMR data is quite different from free text, please refer to the rest for the details.
+
+## Run MCE
+
+### Step 1: Build
+
+The implementation uses c++11 features, it requires a compiler with c++ support, such as `gcc-4.6.3` or newer.
+
+After clone the repository, one can easily compile it by `make`.
+
+    git clone https://github.com/XiangruiCAI/mce
+    cd mce
+    make
+
+Then the `mce` under the folder is the executable file.
+
 # Modification
 For use multivariate gaussian distribution and beta distribution, this repo depends on boost and eigen.
 You can install it on ubuntu by:
