@@ -69,7 +69,6 @@ After training, the medical concept embeddings are saved in the result file. All
       -attnws             size of the attention window [10]
       -epoch              number of epochs [5]
       -minCount           minimal number of word occurences [5]
-      -minCountLabel      minimal number of label occurences [0]
       -neg                number of negatives sampled [5]
       -wordNgrams         max length of word ngram [1]
       -thread             number of threads [12]
