@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "args.h"
-#include "med2vec.h"
+#include "mce.h"
 
 using namespace fasttext;
 

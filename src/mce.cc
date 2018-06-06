@@ -7,7 +7,7 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
-#include "med2vec.h"
+#include "mce.h"
 
 #include <math.h>
 
@@ -247,56 +247,56 @@ void FastText::attnContext(Model& model, real lr,
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && f + c >= 0 && f + c < seq.size()) {
         int32_t distance = seq[f + c].second - seq[f].second + args_->attnws;
-        if (distance < 0 || distance > 2 * args_->attnws)
-          continue;
+        if (distance < 0 || distance > 2 * args_->attnws) continue;
         input.push_back(std::make_pair(seq[f + c].first, distance));
       }
     }
-    //for (auto token : input) {
-    //    std::cout << dict_->getWord(token.first) << " " << token.second << std::endl;
+    // for (auto token : input) {
+    //    std::cout << dict_->getWord(token.first) << " " << token.second <<
+    //    std::endl;
     //}
     if (args_->model == model_name::attn1)
-        model.updateAttn(input, seq[f].first, lr);
+      model.updateAttn(input, seq[f].first, lr);
     else if (args_->model == model_name::attn2)
-        model.updateAttn2(input, seq[f].first, lr);
+      model.updateAttn2(input, seq[f].first, lr);
     // if (f == 1) break;
   }
 }
-  /*
-  std::srand((unsigned)std::time(0));
-  for (int32_t f = 0; f < line.size(); f++) {
-    auto central = line[f];
-    if (central.wordsID.size() == 0) continue;
-    std::vector<std::pair<int32_t, int32_t>> input;
-    for (int32_t c = 0; c < line.size(); c++) {
-      auto context = line[c];
-      if (context.wordsID.size() == 0) continue;
-      int32_t dist = context.time - central.time;
-      int32_t relpos = -1;
-      if (args_->timeUnit == time_unit::day) {
-        relpos = get_attnid_day(dist);
-      } else {
-        relpos = get_attnid_week(dist);
-        //relpos = dist + ws;
-      }
-      // if (relpos == -1) continue;
-      if (relpos < 0 || relpos > ws * 2) continue;
-      int32_t ck = context.wordsID.size() < args_->nrand ? context.wordsID.size() : args_->nrand;
-      for (int32_t k = 0; k < context.wordsID.size(); k++) {
-        int32_t j = std::rand() % context.wordsID.size();
-        input.push_back(std::make_pair(context.wordsID[j], relpos));
-      }
+/*
+std::srand((unsigned)std::time(0));
+for (int32_t f = 0; f < line.size(); f++) {
+  auto central = line[f];
+  if (central.wordsID.size() == 0) continue;
+  std::vector<std::pair<int32_t, int32_t>> input;
+  for (int32_t c = 0; c < line.size(); c++) {
+    auto context = line[c];
+    if (context.wordsID.size() == 0) continue;
+    int32_t dist = context.time - central.time;
+    int32_t relpos = -1;
+    if (args_->timeUnit == time_unit::day) {
+      relpos = get_attnid_day(dist);
+    } else {
+      relpos = get_attnid_week(dist);
+      //relpos = dist + ws;
     }
-    for (auto target = central.wordsID.cbegin();
-         target != central.wordsID.cend(); target++) {
-      if (args_->model == model_name::attn1) {
-        model.updateAttn(input, *target, lr);
-      } else if (args_->model == model_name::attn2) {
-        model.updateAttn2(input, *target, lr);
-      }
+    // if (relpos == -1) continue;
+    if (relpos < 0 || relpos > ws * 2) continue;
+    int32_t ck = context.wordsID.size() < args_->nrand ? context.wordsID.size()
+: args_->nrand; for (int32_t k = 0; k < context.wordsID.size(); k++) { int32_t j
+= std::rand() % context.wordsID.size();
+      input.push_back(std::make_pair(context.wordsID[j], relpos));
     }
   }
-  */
+  for (auto target = central.wordsID.cbegin();
+       target != central.wordsID.cend(); target++) {
+    if (args_->model == model_name::attn1) {
+      model.updateAttn(input, *target, lr);
+    } else if (args_->model == model_name::attn2) {
+      model.updateAttn2(input, *target, lr);
+    }
+  }
+}
+*/
 
 void FastText::wordVectors() {
   std::string word;
@@ -444,4 +444,4 @@ void FastText::train(std::shared_ptr<Args> args) {
     saveAttention();
   }
 }
-}
+}  // namespace fasttext
