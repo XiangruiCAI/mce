@@ -45,5 +45,3 @@ mce: $(OBJS) src/mce.cc
 clean:
 	rm -rf *.o mce
 
-run:
-	./train.sh
