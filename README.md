@@ -8,7 +8,7 @@ This repository is an implementation introduce in the following paper, which can
     Xiangrui Cai, Jinyang Gao, Kee Yuan Ngiam, Beng Chin Ooi, Ying Zhang, Xiaojie Yuan
     IJCAI 2018 (To appear)
 
-<img src="./illustration/emr.png" width="70%" align="center">
+<img src="./illustration/emr.png" width="60%" align="center">
 
 Medical concept embedding is central to healthcare analysis on the structured Electronic Medical Records (EMRs), which represents the medical concepts by low-dimensional continuous vectors. The vectors not only benefit the performance of downstream application, but also enable knowledge base construction in healthcare domain. 
 
@@ -20,7 +20,7 @@ Unfortunately, current methods for medical concept embedding ignore two importan
 Our method, MCE, is proposed to address the problems above. MCE employs a time-aware attention to model the influence of the target medical concept on a series of time periods around it. As shown in the following figure, the model is built based on CBOW and 
 the darker cells indicate heavier influence of the target on the corresponding time unit.
 
-<img src="./illustration/TAattention.png" width="70%" align="center">
+<img src="./illustration/TAattention.png" width="60%" align="center">
 
 ## Implementation
 
