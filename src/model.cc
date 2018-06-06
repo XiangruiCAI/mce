@@ -17,7 +17,6 @@
 
 #include "utils.h"
 
-//#include <boost/math/distributions/beta.hpp>
 
 namespace fasttext {
 

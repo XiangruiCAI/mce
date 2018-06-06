@@ -55,34 +55,6 @@ void FastText::saveVectors() {
   ofs.close();
 }
 
-void FastText::saveAttention() {
-  std::ofstream ofs(args_->output + ".attn");
-  if (!ofs.is_open()) {
-    std::cout << "Error opening file for saving attention vectors."
-              << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  ofs << dict_->nwords() << " " << 2 * args_->attnws + 1 << std::endl;
-  Vector vec(2 * args_->attnws + 1);
-  for (int32_t i = 0; i < dict_->nwords(); i++) {
-    std::string word = dict_->getWord(i);
-    vec.zero();
-    vec.addRow(*attn_, i);
-    vec.add(*bias_, 1.0);
-    ofs << word << " " << vec << std::endl;
-  }
-  ofs.close();
-
-  ofs.open(args_->output + ".bias");
-  if (!ofs.is_open()) {
-    std::cout << "Error opening file for saving attention vectors."
-              << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  ofs << *bias_ << std::endl;
-  ofs.close();
-}
-
 void FastText::saveModel() {
   std::ofstream ofs(args_->output + ".bin", std::ofstream::binary);
   if (!ofs.is_open()) {
@@ -262,41 +234,6 @@ void FastText::attnContext(Model& model, real lr,
     // if (f == 1) break;
   }
 }
-/*
-std::srand((unsigned)std::time(0));
-for (int32_t f = 0; f < line.size(); f++) {
-  auto central = line[f];
-  if (central.wordsID.size() == 0) continue;
-  std::vector<std::pair<int32_t, int32_t>> input;
-  for (int32_t c = 0; c < line.size(); c++) {
-    auto context = line[c];
-    if (context.wordsID.size() == 0) continue;
-    int32_t dist = context.time - central.time;
-    int32_t relpos = -1;
-    if (args_->timeUnit == time_unit::day) {
-      relpos = get_attnid_day(dist);
-    } else {
-      relpos = get_attnid_week(dist);
-      //relpos = dist + ws;
-    }
-    // if (relpos == -1) continue;
-    if (relpos < 0 || relpos > ws * 2) continue;
-    int32_t ck = context.wordsID.size() < args_->nrand ? context.wordsID.size()
-: args_->nrand; for (int32_t k = 0; k < context.wordsID.size(); k++) { int32_t j
-= std::rand() % context.wordsID.size();
-      input.push_back(std::make_pair(context.wordsID[j], relpos));
-    }
-  }
-  for (auto target = central.wordsID.cbegin();
-       target != central.wordsID.cend(); target++) {
-    if (args_->model == model_name::attn1) {
-      model.updateAttn(input, *target, lr);
-    } else if (args_->model == model_name::attn2) {
-      model.updateAttn2(input, *target, lr);
-    }
-  }
-}
-*/
 
 void FastText::wordVectors() {
   std::string word;
@@ -441,7 +378,6 @@ void FastText::train(std::shared_ptr<Args> args) {
   saveModel();
   if (args_->model != model_name::sup) {
     saveVectors();
-    saveAttention();
   }
 }
 }  // namespace fasttext
