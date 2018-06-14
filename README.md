@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository is an implementation introduce in the following paper, which can be found at [TODO: arxiv]
+This repository is an implementation introduce in the following paper. The draft version can be found at https://arxiv.org/pdf/1806.02873.pdf.
 
     Medical Concept Embedding with Time-Aware Attention
     Xiangrui Cai, Jinyang Gao, Kee Yuan Ngiam, Beng Chin Ooi, Ying Zhang, Xiaojie Yuan
