@@ -42,7 +42,6 @@ class FastText {
   void getVector(Vector&, const std::string&);
   void getVector(Vector&, const int32_t);
   void saveVectors();
-  void saveAttention();
   void saveModel();
   void loadModel(const std::string&);
   void loadModel(std::istream&);

@@ -92,46 +92,14 @@ void Args::parseArgs(int argc, char** argv) {
       epoch = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-minCount") == 0) {
       minCount = atoi(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-minCountLabel") == 0) {
-      minCountLabel = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-neg") == 0) {
       neg = atoi(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-wordNgrams") == 0) {
-      wordNgrams = atoi(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-loss") == 0) {
-      if (strcmp(argv[ai + 1], "hs") == 0) {
-        loss = loss_name::hs;
-      } else if (strcmp(argv[ai + 1], "ns") == 0) {
-        loss = loss_name::ns;
-      } else if (strcmp(argv[ai + 1], "softmax") == 0) {
-        loss = loss_name::softmax;
-      } else {
-        std::cout << "Unknown loss: " << argv[ai + 1] << std::endl;
-        printHelp();
-        exit(EXIT_FAILURE);
-      }
-    } else if (strcmp(argv[ai], "-bucket") == 0) {
-      bucket = atoi(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-minn") == 0) {
-      minn = atoi(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-maxn") == 0) {
-      maxn = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-thread") == 0) {
       thread = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-t") == 0) {
       t = atof(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-label") == 0) {
-      label = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-verbose") == 0) {
       verbose = atoi(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-pretrainedVectors") == 0) {
-      pretrainedVectors = std::string(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-beta_base") == 0) {
-      beta_base = atof(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-delta") == 0) {
-      delta = atof(argv[ai + 1]);
-    } else if (strcmp(argv[ai], "-nrand") == 0) {
-      nrand = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-timeUnit") == 0) {
       std::string tmunit(argv[ai + 1]);
       if (tmunit == "day") {
@@ -182,29 +150,11 @@ void Args::printHelp() {
       << "  -epoch              number of epochs [" << epoch << "]\n"
       << "  -minCount           minimal number of word occurences [" << minCount
       << "]\n"
-      << "  -minCountLabel      minimal number of label occurences ["
-      << minCountLabel << "]\n"
       << "  -neg                number of negatives sampled [" << neg << "]\n"
-      << "  -wordNgrams         max length of word ngram [" << wordNgrams
-      << "]\n"
-      << "  -loss               loss function {ns, hs, softmax} [ns]\n"
-      << "  -bucket             number of buckets [" << bucket << "]\n"
-      << "  -minn               min length of char ngram [" << minn << "]\n"
-      << "  -maxn               max length of char ngram [" << maxn << "]\n"
       << "  -thread             number of threads [" << thread << "]\n"
       << "  -t                  sampling threshold [" << t << "]\n"
-      << "  -label              labels prefix [" << label << "]\n"
-      << "  -beta_base          base beta parameters for initializing theta "
-         "matrix ["
-      << beta_base << "]\n"
-      << "  -delta              small probability for random context [" << delta
-      << "]\n"
-      << "  -timeUnit           unit of time scope [" << int(timeUnit) << "]\n"
-      << "  -nrand              number of random selection at each time point ["
-      << int(nrand) << "]\n"
+      << "  -timeUnit           unit of time scope (1: hour, 2: day, 3: week, 4: month) [" << int(timeUnit) << "]\n"
       << "  -verbose            verbosity level [" << verbose << "]\n"
-      << "  -pretrainedVectors  pretrained word vectors for supervised "
-         "learning []"
       << std::endl;
 }
 
