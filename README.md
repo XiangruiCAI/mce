@@ -3,7 +3,7 @@
 *update 2018-08-21*
 ## Data Link
 
-The link to DE-SynPUF dataset is "https://www.google.com.hk/search?q=DEsynpuf+cms+dataaset&oq=DEsynpuf+cms+dataaset&aqs=chrome..69i57j33l3.6992j1j7&sourceid=chrome&ie=UTF-8".
+The link to DE-SynPUF dataset is "https://www.cms.gov/Research-Statistics-Data-and-Systems/Downloadable-Public-Use-Files/SynPUFs/DE_Syn_PUF.html"
 
 ## Introduction
 
