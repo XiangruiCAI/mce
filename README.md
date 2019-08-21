@@ -1,5 +1,10 @@
 # Medical Concept Embedding
 
+*update 2018-08-21*
+## Data Link
+
+The link to DE-SynPUF dataset is "https://www.google.com.hk/search?q=DEsynpuf+cms+dataaset&oq=DEsynpuf+cms+dataaset&aqs=chrome..69i57j33l3.6992j1j7&sourceid=chrome&ie=UTF-8".
+
 ## Introduction
 
 This repository is an implementation introduce in the following paper. The draft version can be found at https://arxiv.org/pdf/1806.02873.pdf.
